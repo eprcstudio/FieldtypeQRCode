@@ -4,7 +4,7 @@ A simple fieldtype generating a QR Code from the public URL of the page.
 
 You can also change the text to be anything by hooking after `___getQRText()`:
 
-In `ready.php`
+(in `ready.php`)
 
 ```
 $wire->addHookAfter("FieldtypeQRCode::getQRText", function($event) {
@@ -20,4 +20,4 @@ echo $page->getInputfield("name-of-your-field")->render();
 
 This fieldtype generates the QR Code using the PHP library [QR Code Generator](https://github.com/kazuhikoarase/qrcode-generator/) by Kazuhiko Arase.
 
-It also extends BaseFieldtypeRuntime, a boilerplate by [Bernhard Baumrock](https://github.com/BernhardBaumrock). For more informations, check this [Processwire forum post](https://processwire.com/talk/topic/20082-how-to-create-your-very-own-custom-fieldtypes-in-processwire/?tab=comments#comment-174172).
+It also extends BaseFieldtypeRuntime, a boilerplate by [Bernhard Baumrock](https://github.com/BernhardBaumrock), and thus is required / needs to be installed. For more informations, check this [Processwire forum post](https://processwire.com/talk/topic/20082-how-to-create-your-very-own-custom-fieldtypes-in-processwire/?tab=comments#comment-174172).
