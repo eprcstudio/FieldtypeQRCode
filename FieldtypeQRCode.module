@@ -1,0 +1,52 @@
+<?php namespace ProcessWire;
+
+require_once(__DIR__ . "/qrcode-generator.php");
+
+use QRCode;
+
+/**
+ * Fieldtype generating a QR Code from the public URL of the page
+ *
+ * Copyright (c) 2021 Romain Cazier
+ * Licensed under MIT License, see LICENSE.md
+ *
+ * https://eprc.studio
+ *
+ * QRCode-Generator library by Kazuhiko Arase
+ * https://github.com/kazuhikoarase/qrcode-generator/
+ * 
+ * BaseFieldtypeRuntime by Bernhard Baumrock
+ * https://processwire.com/talk/topic/20082-how-to-create-your-very-own-custom-fieldtypes-in-processwire/?tab=comments#comment-174172
+ *
+ */
+class FieldtypeQRCode extends BaseFieldtypeRuntime {
+
+	public static function getModuleInfo() {
+		return [
+			"title" => "QR Code",
+			"author" => "Romain Cazier",
+			"version" => "1.0.0",
+			"summary" => "Generates a QR Code from the public URL of the page",
+			"icon" => "qrcode",
+      "requires" => ["BaseFieldtypeRuntime"],
+		];
+	}
+	
+	public function ___getQRText() {
+		$page = $this->pages->get($this->input->get->id);
+		return $page->httpUrl;
+	}
+
+	public function render() {
+		$qrtext = $this->getQRText();
+		$qr = QRCode::getMinimumQRCode($qrtext, QR_ERROR_CORRECT_LEVEL_L);
+		ob_start();
+		$im = $qr->createImage(4, 4);
+		imagegif($im);
+		$data = ob_get_contents();
+		ob_end_clean();
+		imagedestroy($im);
+		$src = "data:image/gif;base64," . base64_encode($data);
+		return "<img src=\"$src\" alt=\"QR Code: $qrtext\" />";
+	}
+}

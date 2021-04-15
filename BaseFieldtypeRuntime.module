@@ -1,0 +1,88 @@
+<?php namespace ProcessWire;
+
+/**
+ * Simple Fieldtype boilerplate that does not store any data in the database
+ *
+ * @author Bernhard Baumrock, 03.10.2018
+ * @license Licensed under MIT
+ * @link https://www.baumrock.com
+ */
+class BaseFieldtypeRuntime extends Fieldtype {
+
+  protected $page;
+  protected $field;
+
+  public static function getModuleInfo() {
+    return [
+      'title' => 'BaseFieldtypeRuntime',
+      'version' => '1.0.0',
+      'summary' => 'Simple Fieldtype boilerplate that does not store any data in the database',
+      'icon' => 'code',
+    ];
+  }
+
+  /**
+   * link the core InputfieldMarkup to this fieldtype
+   */
+  public function getInputfield(Page $page, Field $field) {
+    $this->page = $page;
+    $this->field = $field;
+
+    /** @var InputfieldMarkup $inputfield */
+    $inputfield = $this->wire->modules('InputfieldMarkup');
+    $field->label = $field->label ?: $field->name;
+
+    // replace the inputfield's render method with our own
+    $inputfield->addHookBefore('render', function(HookEvent $event) {
+      $event->replace = true;
+      $event->return = $this->render();
+    });
+
+    // call the renderReady method when the inputfield is available
+    $inputfield->addHookAfter('renderReadyHook', function(HookEvent $event) {
+      $this->renderReady();
+    });
+
+    // modify config screen to disable AJAX options
+    $inputfield->addHookAfter('getConfigInputfields', function($event) {
+      $inputfields = $event->return;
+      $options = [
+        Inputfield::collapsedNo,
+        Inputfield::collapsedYes,
+        Inputfield::collapsedNever,
+      ];
+      $collapsed = $inputfields->get('collapsed');
+      foreach(array_keys($collapsed->getOptions()) as $option) {
+        if(in_array($option, $options)) continue;
+        $collapsed->removeOption($option);
+      }
+    });
+
+    return $inputfield;
+  }
+
+  /**
+   * methods for providing the field markup and the renderReady actions
+   * in this case nothing happens at all, but you can extend this fieldtype
+   * and do whatever you need by overriding these two methods
+   */
+  public function render() { return ''; }
+  public function renderReady() { return; }
+
+  /**
+   * The following functions are defined as replacements to keep this fieldtype out of the DB
+   */
+  public function sanitizeValue(Page $page, Field $field, $value) { return; }
+  public function loadPageField(Page $page, Field $field) { return; }
+  public function getLoadQuery(Field $field, DatabaseQuerySelect $query) { return $query; }
+  public function savePageField(Page $page, Field $field) { return true; }
+  public function deleteField(Field $field) { return true; }
+  public function getDatabaseSchema(Field $field) { return array(); }
+  public function createField(Field $field) { return true; }
+  public function getCompatibleFieldtypes(Field $field) { return $this->wire(new Fieldtypes()); }
+  public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) { return null; }
+  public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+    throw new WireException("Field '{$query->field->name}' is runtime and not queryable");
+  }
+
+}
