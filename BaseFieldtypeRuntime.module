@@ -76,9 +76,10 @@ class BaseFieldtypeRuntime extends Fieldtype {
   public function loadPageField(Page $page, Field $field) { return; }
   public function getLoadQuery(Field $field, DatabaseQuerySelect $query) { return $query; }
   public function savePageField(Page $page, Field $field) { return true; }
-  public function deleteField(Field $field) { return true; }
-  public function getDatabaseSchema(Field $field) { return array(); }
+	public function deletePageField(Page $page, Field $field) { return true; }
   public function createField(Field $field) { return true; }
+	public function deleteField(Field $field) { return true; }
+  public function getDatabaseSchema(Field $field) { return []; }
   public function getCompatibleFieldtypes(Field $field) { return $this->wire(new Fieldtypes()); }
   public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) { return null; }
   public function getMatchQuery($query, $table, $subfield, $operator, $value) {
