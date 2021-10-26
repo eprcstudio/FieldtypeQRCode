@@ -24,14 +24,11 @@ use QRCode;
  */
 class FieldtypeQRCode extends Fieldtype {
 
-	protected $page;
-	protected $field;
-
 	public static function getModuleInfo() {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.1",
+			"version" => "1.0.2",
 			"summary" => "Generates a QR Code from the public URL of the page",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
@@ -44,8 +41,8 @@ class FieldtypeQRCode extends Fieldtype {
 	 * @return string String to be used to generate the QR Code
 	 * 
 	 */
-	public function ___getQRText() {
-		return $this->page->httpUrl;
+	public function ___getQRText(Page $page) {
+		return $page->httpUrl;
 	}
 
 	/**
@@ -55,11 +52,11 @@ class FieldtypeQRCode extends Fieldtype {
 	 * @return string `<img>` containing the base64 code of the QR Code
 	 * 
 	 */
-	public function render() {
-		$isSvg = $this->field->get("format") === "svg";
-		$renderSvgMarkup = $this->field->get("markup") === 1;
+	public function renderQRCode(Page $page, Field $field) {
+		$isSvg = $field->get("format") === "svg";
+		$renderSvgMarkup = $field->get("markup") === 1;
 
-		$qrtext = $this->getQRText();
+		$qrtext = $this->getQRText($page);
 		$qr = QRCode::getMinimumQRCode($qrtext, QR_ERROR_CORRECT_LEVEL_L);
 
 		ob_start();
@@ -86,10 +83,12 @@ class FieldtypeQRCode extends Fieldtype {
 		}
 	}
 
-	public function sanitizeValue(Page $page, Field $field, $value) {
-		$this->page = $page;
-		$this->field = $field;
-		return $this->render();
+	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
+		return $this->renderQRCode($page, $field);
+	}
+
+	public function ___wakeupValue(Page $page, Field $field, $value) {
+		return $this->renderQRCode($page, $field);
 	}
 
 	public function ___getConfigInputfields(Field $field) {
@@ -122,14 +121,10 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	/*
-		Code by Bernhard Baumrock
-		More infos: https://processwire.com/talk/topic/20082-how-to-create-your-very-own-custom-fieldtypes-in-processwire/?tab=comments#comment-174172
+		Code is a mix between https://processwire.com/talk/topic/20082-how-to-create-your-very-own-custom-fieldtypes-in-processwire/?tab=comments#comment-174172 (Bernhard Baumrock) and https://github.com/Toutouwai/FieldtypeRuntimeOnly/blob/master/FieldtypeRuntimeOnly.module (Robin Sallis)
 	*/
 
 	public function getInputfield(Page $page, Field $field) {
-		$this->page = $page;
-		$this->field = $field;
-
 		$field->label = $field->label ?: $field->name;
 
 		/** @var InputfieldMarkup $inputfield */
@@ -137,9 +132,9 @@ class FieldtypeQRCode extends Fieldtype {
 		$inputfield->set('format', $field->get('format'));
 		$inputfield->set('markup', $field->get('markup'));
 
-		$inputfield->addHookBefore("render", function(HookEvent $event) {
+		$inputfield->addHookBefore("render", function(HookEvent $event) use($page, $field) {
 			$event->replace = true;
-			$event->return = $this->render();
+			$event->return = $this->renderQRCode($page, $field);
 		});
 
 		$inputfield->addHookAfter("getConfigInputfields", function($event) {
@@ -158,16 +153,19 @@ class FieldtypeQRCode extends Fieldtype {
 
 		return $inputfield;
 	}
-	public function loadPageField(Page $page, Field $field) { return; }
-	public function getLoadQuery(Field $field, DatabaseQuerySelect $query) { return $query; }
+	
+	public function getCompatibleFieldtypes(Field $field) { return $this->wire(new Fieldtypes()); }
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		throw new WireException("Field '{$query->field->name}' is runtime and not queryable");
+	}
+	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) { return null; }
+	public function sanitizeValue(Page $page, Field $field, $value) { return $value; }
+	public function sleepValue(Page $page, Field $field, $value) { return $value; }
 	public function savePageField(Page $page, Field $field) { return true; }
+	public function loadPageField(Page $page, Field $field) { return ""; }
+	public function getLoadQuery(Field $field, DatabaseQuerySelect $query) { return $query; }
 	public function deletePageField(Page $page, Field $field) { return true; }
 	public function createField(Field $field) { return true; }
 	public function deleteField(Field $field) { return true; }
 	public function getDatabaseSchema(Field $field) { return []; }
-	public function getCompatibleFieldtypes(Field $field) { return $this->wire(new Fieldtypes()); }
-	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) { return null; }
-	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		throw new WireException("Field '{$query->field->name}' is runtime and not queryable");
-	}
 }
