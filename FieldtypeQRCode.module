@@ -115,6 +115,9 @@ class FieldtypeQRCode extends Fieldtype {
 		$f->label2 = $this->_("Yes");
 		$f->showIf("format=svg");
 		$f->value = $field->get("markup");
+		if($field->get("markup") === 1) {
+			$f->checked(true);
+		}
 		$inputfields->add($f);
 
 		return $inputfields;
