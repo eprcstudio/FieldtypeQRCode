@@ -28,7 +28,7 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.2",
+			"version" => "1.0.3",
 			"summary" => "Generates a QR Code from the public URL of the page",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
