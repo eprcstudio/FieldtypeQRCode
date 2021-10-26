@@ -83,10 +83,6 @@ class FieldtypeQRCode extends Fieldtype {
 		}
 	}
 
-	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
-		return $this->renderQRCode($page, $field);
-	}
-
 	public function ___wakeupValue(Page $page, Field $field, $value) {
 		return $this->renderQRCode($page, $field);
 	}
@@ -135,11 +131,6 @@ class FieldtypeQRCode extends Fieldtype {
 		$inputfield->set('format', $field->get('format'));
 		$inputfield->set('markup', $field->get('markup'));
 
-		$inputfield->addHookBefore("render", function(HookEvent $event) use($page, $field) {
-			$event->replace = true;
-			$event->return = $this->renderQRCode($page, $field);
-		});
-
 		$inputfield->addHookAfter("getConfigInputfields", function($event) {
 			$inputfields = $event->return;
 			$options = [
@@ -162,6 +153,7 @@ class FieldtypeQRCode extends Fieldtype {
 		throw new WireException("Field '{$query->field->name}' is runtime and not queryable");
 	}
 	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) { return null; }
+	public function markupValue(Page $page, Field $field, $value = null, $property = '') { return $value; }
 	public function sanitizeValue(Page $page, Field $field, $value) { return $value; }
 	public function sleepValue(Page $page, Field $field, $value) { return $value; }
 	public function savePageField(Page $page, Field $field) { return true; }
