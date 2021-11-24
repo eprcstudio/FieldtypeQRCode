@@ -4,6 +4,8 @@ A simple fieldtype generating a QR Code from the public URL of the page, and mor
 
 Using the PHP library [QR Code Generator](https://github.com/kazuhikoarase/qrcode-generator/) by Kazuhiko Arase.
 
+![screenshot](https://user-images.githubusercontent.com/6616448/143303398-ffcb4939-1ff4-4877-88c1-0bf7ad662daa.jpg)
+
 ## Options
 
 In the field’s `Details` tab you can change between .gif or .svg formats. If you select .svg
