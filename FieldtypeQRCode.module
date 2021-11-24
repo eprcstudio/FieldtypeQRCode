@@ -24,7 +24,7 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.4",
+			"version" => "1.0.5",
 			"summary" => "Generates a QR Code from the public URL of the page (and more)",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
@@ -226,6 +226,8 @@ class FieldtypeQRCode extends Fieldtype {
 	public function ___markupValue(Page $page, Field $field, $value = null, $property = "") {
 		if(!is_array($value)) {
 			return $value;
+		} elseif(!count($value)) {
+			return "<p>No QR code to output.<br>Please check your <a href=\"{$field->editUrl()}#fieldtypeConfig\" target=\"_blank\">source(s)</a>.</p>";
 		} else {
 			$out = "";
 			if(count($value) > 1) {
