@@ -1,11 +1,7 @@
 <?php namespace ProcessWire;
 
-require_once(__DIR__ . "/qrcode-generator.php");
-
-use QRCode;
-
 /**
- * Fieldtype generating a QR Code from the public URL of the page
+ * Fieldtype generating a QR Code from the public URL of the page (and more)
  *
  * Copyright (c) 2021 Romain Cazier
  * Licensed under MIT License, see LICENSE
@@ -28,39 +24,139 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.3",
-			"summary" => "Generates a QR Code from the public URL of the page",
+			"version" => "1.0.4",
+			"summary" => "Generates a QR Code from the public URL of the page (and more)",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
 		];
 	}
-	
-	/**
-	 * Return page's `httpUrl` property. Can be hooked after to return anything
-	 * 
-	 * @return string String to be used to generate the QR Code
-	 * 
-	 */
-	public function ___getQRText(Page $page) {
-		return $page->httpUrl;
+
+	public function __construct() {
+		require_once(dirname(__FILE__) . "/qrcode-generator.php");
 	}
 
 	/**
-	 * Based on the configuration, return an image with the QR Code in a svg or
-	 * gif (in base64)
+	 * Returns the text to generate the QR code.
 	 * 
-	 * @return string `<img>` containing the base64 code of the QR Code
+	 * @param Page|Pagefile|Pageimage $page The source page/pagefile/pageimage
+	 * @param bool|Language|array $options Specify true to output the page's
+	 * `editURL`, a Language object to return URL in that Language or use
+	 * $options array:
+	 *  - `edit` (bool): True to output the page's `editURL`.
+	 *  - `language` (Language|bool): Optionally specify Language, or boolean
+	 * true to force current user language.
+	 * @return string
 	 * 
 	 */
-	public function renderQRCode(Page $page, Field $field) {
-		$isSvg = $field->get("format") === "svg";
-		$renderSvgMarkup = $field->get("markup") === 1;
+	public function ___getQRText($page, $options = []) {
+		if(is_array($options)) {
+			$url = $page->httpUrl;
+			if(!empty($options["edit"]) && $page instanceof Page) {
+				if(empty($options["language"])) {
+					$url = $page->editUrl(true);
+					$url = preg_replace("/&language=\d+/", "", $url);
+				} else {
+					$url = $page->editUrl([
+						"http" => true,
+						"language" => $options["language"]
+					]);
+				}
+			} else if(!empty($options["language"]) && $page instanceof Page) {
+				if($options["language"] === true) {
+					$url = $page->localHttpUrl();
+				} else {
+					$url = $page->httpUrl($options["language"]);
+				}
+			}
+		} else if($options === true && $page instanceof Page) {
+			$url = $page->editUrl(true);
+			$url = preg_replace("/&language=\d+/", "", $url);
+		} else if($options instanceof Language && $page instanceof Page) {
+			$url = $page->httpUrl($options);
+		}
+		return $url;
+	}
 
-		$qrtext = $this->getQRText($page);
-		$qr = QRCode::getMinimumQRCode($qrtext, QR_ERROR_CORRECT_LEVEL_L);
+	/**
+	 * Generate the QR code(s) based on the configuration and return them in
+	 * an array of arrays containing the QR code image, its original text,
+	 * its label and its source (from the configuration)
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
+	public function ___generateQRCodes(Page $page, Field $field, array $sources = [], $languages = null) {
+		$svg    = $field->get("format") === "svg";
+		$markup = $field->get("markup") === 1;
+		
+		$qrcodes = [];
+
+		foreach($sources as $source) {
+			if($source === "httpUrl") {
+				if($languages) {
+					foreach($languages as $language) {
+						$text = $this->getQRText($page, $language);
+						$qr = $this->generateQRCode($text, $svg, $markup);
+						$qrcodes[] = [
+							"label" => "URL ({$language->title})",
+							"qr" => $qr,
+							"source" => $source,
+							"text" => $text,
+						];
+					}
+				} else {
+					$text = $this->getQRText($page);
+					$qr = $this->generateQRCode($text, $svg, $markup);
+					$qrcodes[] = [
+						"label" => "URL",
+						"qr" => $qr,
+						"source" => $source,
+						"text" => $text,
+					];
+				}
+			} elseif($source === "editUrl") {
+				$text = $this->getQRText($page, true);
+				$qr = $this->generateQRCode($text, $svg, $markup);
+				$qrcodes[] = [
+					"label" => "Admin URL",
+					"qr" => $qr,
+					"source" => $source,
+					"text" => $text,
+				];
+			} elseif($files = $page->getUnformatted($source)) {
+				$label = $page->fields->get($source)->label;
+				foreach($files as $file) {
+					$text = $this->getQRText($file);
+					$qr = $this->generateQRCode($text, $svg, $markup);
+					$qrcodes[] = [
+						"label" => "{$label}: {$file->basename()}",
+						"qr" => $qr,
+						"source" => $source,
+						"text" => $text,
+					];
+				}
+			}
+		}
+
+		return $qrcodes;
+	}
+
+	/**
+	 * Returns an array with the original text and the QR code image
+	 * 
+	 * @param string $text
+	 * @param bool $svg Generate the QR code as svg instead of gif ? (default=true)
+	 * @param bool $markup If svg, output its markup instead of a base64 ? (default=false)
+	 * @return string
+	 * 
+	 */
+	public static function generateQRCode(string $text, $svg = true, $markup = false) {
+		$qr = \QRCode::getMinimumQRCode($text, QR_ERROR_CORRECT_LEVEL_L);
 
 		ob_start();
-		if ($isSvg) {
+		if ($svg) {
 			$qr->printSVG();
 		} else {
 			$im = $qr->createImage(4, 4);
@@ -69,27 +165,96 @@ class FieldtypeQRCode extends Fieldtype {
 		$data = ob_get_contents();
 		ob_end_clean();
 
-		if ($isSvg) {
+		if ($svg) {
 			$src = "data:image/svg+xml;base64," . base64_encode($data);
 		} else {
-			imagedestroy($im);
 			$src = "data:image/gif;base64," . base64_encode($data);
+			imagedestroy($im);
 		}
 
-		if ($isSvg && $renderSvgMarkup) {
-			return $data;
+		if ($svg && $markup) {
+			$qr = str_replace("svg\">", "svg\"><title>$text</title>", $data);
 		} else {
-			return "<img src=\"$src\" alt=\"QR Code: $qrtext\" />";
+			$qr = "<img src=\"$src\" alt=\"$text\" />";
 		}
+		
+		return $qr;
 	}
 
 	public function ___wakeupValue(Page $page, Field $field, $value) {
-		return $this->renderQRCode($page, $field);
+		$languages = $page->getLanguages();
+		$sources = $this->parseSources($field);
+		return $this->generateQRCodes($page, $field, $sources, $languages);
+	}
+
+	/**
+	 * Parse the sources from the configuration and return them in an array
+	 * 
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
+	protected function parseSources(Field $field) {
+		if(!($sources = $field->get("source"))) return ["httpUrl"];
+		$sources = explode(",", $sources);
+		foreach($sources as &$source) {
+			$source = trim($source);
+			if($source === "url") $source = "httpUrl";
+		}
+		unset($source);
+		return array_unique($sources);
+	}
+
+	public function ___formatValue(Page $page, Field $field, $value) {
+		return array_reduce($value, array($this, "reduceQRCodes"));
+	}
+
+	protected function reduceQRCodes($carry, $item) {
+		$carry .= $item["qr"];
+		return $carry;
+	}
+
+	public function ___markupValue(Page $page, Field $field, $value = null, $property = "") {
+		$out = "";
+		if(count($value) > 1) {
+			$options = [];
+			foreach($value as $v) {
+				$options[] = $v["label"];
+			}	
+			$out .= $this->renderSelectOptions($options);
+		}
+		$out .= "<ul class=\"gridQRCodes\">";
+		$firstQR = true;
+		foreach($value as $v) {
+			$out .= "<li class=\"gridQRCode";
+			if($firstQR === true) {
+				$firstQR = $v["text"];
+				$out .= " show";
+			}
+			$out .= "\">";
+			$out .= $v["qr"];
+			$out .= "</li>";
+		}
+		$out .= "</ul>";
+		$out .= "<p class=\"contentQRCode\">";
+		$out .= "<a href=\"$firstQR\" target=\"_blank\">$firstQR</a>";
+		$out .= "</p>";
+		return $out;
+	}
+
+	protected function renderSelectOptions(array $options) {
+		$out = "<select class=\"uk-select {$this->className}Select\">";
+		foreach($options as $key => $label) {
+			$out .= "<option value=\"$key\">$label</option>";
+		}
+		$out .= "</select>";
+		return $out;
 	}
 
 	public function ___getConfigInputfields(Field $field) {
-		if(is_null($field->get("format"))) $field->set("format", "gif");
+		if(is_null($field->get("format"))) $field->set("format", "svg");
 		if(is_null($field->get("markup"))) $field->set("markup", 0);
+		if(is_null($field->get("source"))) $field->set("source", "");
 
 		$inputfields = parent::___getConfigInputfields($field);
 
@@ -100,7 +265,7 @@ class FieldtypeQRCode extends Fieldtype {
 		$f->label = $this->_("Format");
 		$f->optionColumns = 1;
 		$f->value = $field->get("format");
-		$f->addOptions(["gif" => ".gif", "svg" => ".svg"]);
+		$f->addOptions(["svg" => ".svg", "gif" => ".gif"]);
 		$inputfields->add($f);
 
 		$f = $this->modules->get("InputfieldCheckbox");
@@ -116,20 +281,33 @@ class FieldtypeQRCode extends Fieldtype {
 		}
 		$inputfields->add($f);
 
+		$f = $this->modules->get("InputfieldText");
+		$f->attr("name", "source");
+		$f->description = $this->_("Define which source(s) you want the QR code(s) to be generated from. You can either use \"httpUrl\" (\"url\" will behave the same) and/or \"editUrl\" and/or any field containing files/images. You can also specify multiple sources by separating them with a comma. Default: \"httpUrl\"");
+		$f->label = $this->_("QR code source(s)");
+		$f->value = $field->get("source");
+		$inputfields->add($f);
+
 		return $inputfields;
 	}
 
-	/*
-		Code is a mix between https://processwire.com/talk/topic/20082-how-to-create-your-very-own-custom-fieldtypes-in-processwire/?tab=comments#comment-174172 (Bernhard Baumrock) and https://github.com/Toutouwai/FieldtypeRuntimeOnly/blob/master/FieldtypeRuntimeOnly.module (Robin Sallis)
-	*/
+	public function ___getConfigAllowContext(Field $field) {
+		$fields = ["format", "markup", "source"];
+		return array_merge(parent::___getConfigAllowContext($field), $fields);
+	}
 
 	public function getInputfield(Page $page, Field $field) {
-		$field->label = $field->label ?: $field->name;
+		$url = $this->wire->config->urls->{$this->className};
+		$this->wire->config->styles->add("{$url}{$this->className}.css");
+		$this->wire->config->scripts->add("{$url}{$this->className}.js");
 
 		/** @var InputfieldMarkup $inputfield */
 		$inputfield = $this->wire->modules("InputfieldMarkup");
-		$inputfield->set('format', $field->get('format'));
-		$inputfield->set('markup', $field->get('markup'));
+
+		$inputfield->addHookBefore("render", function($event) use($page, $field) {
+			$event->replace = true;
+			$event->return = $this->markupValue($page, $field, $event->object->value);
+		});
 
 		$inputfield->addHookAfter("getConfigInputfields", function($event) {
 			$inputfields = $event->return;
@@ -148,19 +326,53 @@ class FieldtypeQRCode extends Fieldtype {
 		return $inputfield;
 	}
 	
-	public function getCompatibleFieldtypes(Field $field) { return $this->wire(new Fieldtypes()); }
+	/* Keep FieldtypeQRCode out of the database */
+
+	public function getCompatibleFieldtypes(Field $field) {
+		return $this->wire(new Fieldtypes());
+	}
+
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 		throw new WireException("Field '{$query->field->name}' is runtime and not queryable");
 	}
-	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) { return null; }
-	public function markupValue(Page $page, Field $field, $value = null, $property = '') { return $value; }
-	public function sanitizeValue(Page $page, Field $field, $value) { return $value; }
-	public function sleepValue(Page $page, Field $field, $value) { return $value; }
-	public function savePageField(Page $page, Field $field) { return true; }
-	public function loadPageField(Page $page, Field $field) { return ""; }
-	public function getLoadQuery(Field $field, DatabaseQuerySelect $query) { return $query; }
-	public function deletePageField(Page $page, Field $field) { return true; }
-	public function createField(Field $field) { return true; }
-	public function deleteField(Field $field) { return true; }
-	public function getDatabaseSchema(Field $field) { return []; }
+
+	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
+		return null;
+	}
+
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		return $value;
+	}
+
+	public function sleepValue(Page $page, Field $field, $value) {
+		return $value;
+	}
+
+	public function savePageField(Page $page, Field $field) {
+		return true;
+	}
+
+	public function loadPageField(Page $page, Field $field) {
+		return "";
+	}
+
+	public function getLoadQuery(Field $field, DatabaseQuerySelect $query) {
+		return $query;
+	}
+
+	public function deletePageField(Page $page, Field $field) {
+		return true;
+	}
+
+	public function createField(Field $field) {
+		return true;
+	}
+
+	public function deleteField(Field $field) {
+		return true;
+	}
+
+	public function getDatabaseSchema(Field $field) {
+		return [];
+	}
 }
