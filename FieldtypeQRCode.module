@@ -35,6 +35,15 @@ class FieldtypeQRCode extends Fieldtype {
 		require_once(dirname(__FILE__) . "/qrcode-generator.php");
 	}
 
+	public function ready() {
+		// This is to add cosmetics when outputting to Lister/ListerPro
+		$this->addHookAfter('FieldtypeQRCode::markupValue', function($event) {
+			$value = $event->arguments(2);
+			$value = str_replace("<img", "<img style=\"margin: 0 0.5em 0.5em 0;\"", $value);
+			$event->return = "<div style=\"margin-bottom: -0.5em;\">$value</div>";
+		});
+	}
+
 	/**
 	 * Returns the text to generate the QR code.
 	 * 
@@ -215,31 +224,35 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	public function ___markupValue(Page $page, Field $field, $value = null, $property = "") {
-		$out = "";
-		if(count($value) > 1) {
-			$options = [];
-			foreach($value as $v) {
-				$options[] = $v["label"];
-			}	
-			$out .= $this->renderSelectOptions($options);
-		}
-		$out .= "<ul class=\"gridQRCodes\">";
-		$firstQR = true;
-		foreach($value as $v) {
-			$out .= "<li class=\"gridQRCode";
-			if($firstQR === true) {
-				$firstQR = $v["text"];
-				$out .= " show";
+		if(!is_array($value)) {
+			return $value;
+		} else {
+			$out = "";
+			if(count($value) > 1) {
+				$options = [];
+				foreach($value as $v) {
+					$options[] = $v["label"];
+				}
+				$out .= $this->renderSelectOptions($options);
 			}
-			$out .= "\">";
-			$out .= $v["qr"];
-			$out .= "</li>";
+			$out .= "<ul class=\"gridQRCodes\">";
+			$firstQR = true;
+			foreach($value as $v) {
+				$out .= "<li class=\"gridQRCode";
+				if($firstQR === true) {
+					$firstQR = $v["text"];
+					$out .= " show";
+				}
+				$out .= "\">";
+				$out .= $v["qr"];
+				$out .= "</li>";
+			}
+			$out .= "</ul>";
+			$out .= "<p class=\"contentQRCode\">";
+			$out .= "<a href=\"$firstQR\" target=\"_blank\">$firstQR</a>";
+			$out .= "</p>";
+			return $out;
 		}
-		$out .= "</ul>";
-		$out .= "<p class=\"contentQRCode\">";
-		$out .= "<a href=\"$firstQR\" target=\"_blank\">$firstQR</a>";
-		$out .= "</p>";
-		return $out;
 	}
 
 	protected function renderSelectOptions(array $options) {
