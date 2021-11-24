@@ -24,7 +24,7 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.5",
+			"version" => "1.0.6",
 			"summary" => "Generates a QR Code from the public URL of the page (and more)",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
@@ -105,11 +105,17 @@ class FieldtypeQRCode extends Fieldtype {
 		foreach($sources as $source) {
 			if($source === "httpUrl") {
 				if($languages) {
+					$default = $this->wire()->languages->getDefault();
+					$rootUrl = $this->wire()->pages(1)->url($default);
 					foreach($languages as $language) {
+						$isDefault = $language->id === $default->id;
+						if(!$isDefault && $rootUrl === $this->wire()->pages(1)->url($language)) {
+							continue;
+						}
 						$text = $this->getQRText($page, $language);
 						$qr = $this->generateQRCode($text, $svg, $markup);
 						$qrcodes[] = [
-							"label" => "URL ({$language->title})",
+							"label" => "URL" . ($isDefault ? "" : " ({$language->title})"),
 							"qr" => $qr,
 							"source" => $source,
 							"text" => $text,
@@ -191,7 +197,11 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	public function ___wakeupValue(Page $page, Field $field, $value) {
-		$languages = $page->getLanguages();
+		if($this->wire()->modules->isInstalled('LanguageSupportPageNames')) {
+			$languages = $page->getLanguages();
+		} else {
+			$languages = [];
+		}
 		$sources = $this->parseSources($field);
 		return $this->generateQRCodes($page, $field, $sources, $languages);
 	}
@@ -312,12 +322,12 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	public function getInputfield(Page $page, Field $field) {
-		$url = $this->wire->config->urls->{$this->className};
-		$this->wire->config->styles->add("{$url}{$this->className}.css");
-		$this->wire->config->scripts->add("{$url}{$this->className}.js");
+		$url = $this->wire()->config->urls->{$this->className};
+		$this->wire()->config->styles->add("{$url}{$this->className}.css");
+		$this->wire()->config->scripts->add("{$url}{$this->className}.js");
 
 		/** @var InputfieldMarkup $inputfield */
-		$inputfield = $this->wire->modules("InputfieldMarkup");
+		$inputfield = $this->wire()->modules("InputfieldMarkup");
 
 		$inputfield->addHookBefore("render", function($event) use($page, $field) {
 			$event->replace = true;
