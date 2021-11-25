@@ -197,11 +197,7 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	public function ___wakeupValue(Page $page, Field $field, $value) {
-		if($this->wire()->modules->isInstalled('LanguageSupportPageNames')) {
-			$languages = $page->getLanguages();
-		} else {
-			$languages = [];
-		}
+		$languages = $page->getLanguages();
 		$sources = $this->parseSources($field);
 		return $this->generateQRCodes($page, $field, $sources, $languages);
 	}
