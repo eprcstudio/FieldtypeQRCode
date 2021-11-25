@@ -168,7 +168,7 @@ class FieldtypeQRCode extends Fieldtype {
 	 * 
 	 */
 	public static function generateQRCode(string $text, $svg = true, $markup = false) {
-		$qr = \QRCode::getMinimumQRCode($text, QR_ERROR_CORRECT_LEVEL_L);
+		$qr = FieldtypeQRCode\QRCode::getMinimumQRCode($text, FieldtypeQRCode\QR_ERROR_CORRECT_LEVEL_L);
 
 		ob_start();
 		if ($svg) {

@@ -1,11 +1,14 @@
-<?php
+<?php namespace Processwire\FieldtypeQRCode;
 
 //---------------------------------------------------------------
-// QRCode for PHP5
+// QRCode for PHP5, updated to use namespaced constants instead
+// of define()
 //
-// Copyright (c) 2009 Kazuhiko Arase
+// Copyright (c) 2009 Kazuhiko Arase, updated by Romain Cazier
 //
-// URL: http://www.d-project.com/
+// URLS:
+//   http://www.d-project.com/
+//   https://eprc.studio
 //
 // Licensed under the MIT license:
 //   http://www.opensource.org/licenses/mit-license.php
@@ -20,8 +23,8 @@
 // QRCode
 //---------------------------------------------------------------
 
-define("QR_PAD0", 0xEC);
-define("QR_PAD1", 0x11);
+const QR_PAD0 = 0xEC;
+const QR_PAD1 = 0x11;
 
 class QRCode {
 
@@ -162,7 +165,7 @@ class QRCode {
 
         $this->modules = array();
         for ($i = 0; $i < $this->moduleCount; $i++) {
-            $this->modules[] = QRCode::createNullArray($this->moduleCount);
+            $this->modules[] = $this->createNullArray($this->moduleCount);
         }
 
         $this->setupPositionProbePattern(0, 0);
@@ -180,7 +183,7 @@ class QRCode {
 
         $dataArray = $this->qrDataList;
 
-        $data = QRCode::createData($this->typeNumber, $this->errorCorrectLevel, $dataArray);
+        $data = $this->createData($this->typeNumber, $this->errorCorrectLevel, $dataArray);
 
         $this->mapData($data, $maskPattern);
     }
@@ -382,7 +385,7 @@ class QRCode {
             $buffer->put(QR_PAD1, 8);
         }
 
-        return QRCode::createBytes($buffer, $rsBlocks);
+        return $this->createBytes($buffer, $rsBlocks);
     }
 
     /**
@@ -398,8 +401,8 @@ class QRCode {
         $maxDcCount = 0;
         $maxEcCount = 0;
 
-        $dcdata = QRCode::createNullArray(count($rsBlocks) );
-        $ecdata = QRCode::createNullArray(count($rsBlocks) );
+        $dcdata = $this->createNullArray(count($rsBlocks) );
+        $ecdata = $this->createNullArray(count($rsBlocks) );
 
         $rsBlockCount = count($rsBlocks);
         for ($r = 0; $r < $rsBlockCount; $r++) {
@@ -410,7 +413,7 @@ class QRCode {
             $maxDcCount = max($maxDcCount, $dcCount);
             $maxEcCount = max($maxEcCount, $ecCount);
 
-            $dcdata[$r] = QRCode::createNullArray($dcCount);
+            $dcdata[$r] = $this->createNullArray($dcCount);
             $dcDataCount = count($dcdata[$r]);
             for ($i = 0; $i < $dcDataCount; $i++) {
                 $bdata = $buffer->getBuffer();
@@ -422,7 +425,7 @@ class QRCode {
             $rawPoly = new QRPolynomial($dcdata[$r], $rsPoly->getLength() - 1);
 
             $modPoly = $rawPoly->mod($rsPoly);
-            $ecdata[$r] = QRCode::createNullArray($rsPoly->getLength() - 1);
+            $ecdata[$r] = $this->createNullArray($rsPoly->getLength() - 1);
 
             $ecDataCount = count($ecdata[$r]);
             for ($i = 0; $i < $ecDataCount; $i++) {
@@ -436,7 +439,7 @@ class QRCode {
             $totalCodeCount += $rsBlocks[$i]->getTotalCount();
         }
 
-        $data = QRCode::createNullArray($totalCodeCount);
+        $data = $this->createNullArray($totalCodeCount);
 
         $index = 0;
 
@@ -573,14 +576,14 @@ class QRCode {
 // QRUtil
 //---------------------------------------------------------------
 
-define("QR_G15", (1 << 10) | (1 << 8) | (1 << 5)
-    | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0) );
+const QR_G15 = (1 << 10) | (1 << 8) | (1 << 5)
+    | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
 
-define("QR_G18", (1 << 12) | (1 << 11) | (1 << 10)
-    | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0) );
+const QR_G18 = (1 << 12) | (1 << 11) | (1 << 10)
+    | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
 
-define("QR_G15_MASK", (1 << 14) | (1 << 12) | (1 << 10)
-    | (1 << 4) | (1 << 1) );
+const QR_G15_MASK = (1 << 14) | (1 << 12) | (1 << 10)
+    | (1 << 4) | (1 << 1);
 
 class QRUtil {
 
@@ -1642,35 +1645,35 @@ class QRPolynomial {
 // Mode
 //---------------------------------------------------------------
 
-define("QR_MODE_NUMBER", 1 << 0);
-define("QR_MODE_ALPHA_NUM", 1 << 1);
-define("QR_MODE_8BIT_BYTE", 1 << 2);
-define("QR_MODE_KANJI", 1 << 3);
+const QR_MODE_NUMBER = 1 << 0;
+const QR_MODE_ALPHA_NUM = 1 << 1;
+const QR_MODE_8BIT_BYTE = 1 << 2;
+const QR_MODE_KANJI = 1 << 3;
 
 //---------------------------------------------------------------
 // MaskPattern
 //---------------------------------------------------------------
 
-define("QR_MASK_PATTERN000", 0);
-define("QR_MASK_PATTERN001", 1);
-define("QR_MASK_PATTERN010", 2);
-define("QR_MASK_PATTERN011", 3);
-define("QR_MASK_PATTERN100", 4);
-define("QR_MASK_PATTERN101", 5);
-define("QR_MASK_PATTERN110", 6);
-define("QR_MASK_PATTERN111", 7);
+const QR_MASK_PATTERN000 = 0;
+const QR_MASK_PATTERN001 = 1;
+const QR_MASK_PATTERN010 = 2;
+const QR_MASK_PATTERN011 = 3;
+const QR_MASK_PATTERN100 = 4;
+const QR_MASK_PATTERN101 = 5;
+const QR_MASK_PATTERN110 = 6;
+const QR_MASK_PATTERN111 = 7;
 
 //---------------------------------------------------------------
 // ErrorCorrectLevel
 
 // 7%.
-define("QR_ERROR_CORRECT_LEVEL_L", 1);
+const QR_ERROR_CORRECT_LEVEL_L = 1;
 // 15%.
-define("QR_ERROR_CORRECT_LEVEL_M", 0);
+const QR_ERROR_CORRECT_LEVEL_M = 0;
 // 25%.
-define("QR_ERROR_CORRECT_LEVEL_Q", 3);
+const QR_ERROR_CORRECT_LEVEL_Q = 3;
 // 30%.
-define("QR_ERROR_CORRECT_LEVEL_H", 2);
+const QR_ERROR_CORRECT_LEVEL_H = 2;
 
 
 //---------------------------------------------------------------
