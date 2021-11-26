@@ -11,9 +11,9 @@ Using the PHP library [QR Code Generator](https://github.com/kazuhikoarase/qrcod
 In the field’s `Details` tab you can change between .gif or .svg formats. If you select .svg
 you will have the option to directly output the markup instead of a base64 image. SVG is the default.
 
-You can also change what is used to generate the QR code and even have several sources. The accepted sources (separated by a comma) are: `httpUrl`, `editUrl`, or the name of a file/image field.
+You can also change what is used to generate the QR code and even have several sources. The accepted sources (separated by a comma) are: `httpUrl`, `editUrl`, or the name of any text/URL/file/image field.
 
-If `LanguageSupport` is installed the source `httpUrl` will return as many QR codes as there are languages. Note however that when outputting on the front-end, only the languages visible to the user will be generated.
+If `LanguageSupport` is installed the compatible sources (`httpUrl`, text field, ...) will return as many QR codes as there are languages. Note however that when outputting on the front-end, only the languages visible to the user will be generated.
 
 ## Formatting
 

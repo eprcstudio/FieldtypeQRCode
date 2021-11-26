@@ -18,9 +18,10 @@ $(document).ready(function() {
 			url = $qrcodeImage.attr("alt");
 		}
 
-		// p.contentQRCode > a
-		const $link = $this.next().next().children("a");
-		$link.attr("href", url);
-		$link.html(url);
+		// p.contentQRCode
+		if(url.indexOf("://") !== -1) {
+			url = `<a href="${url}" target=\"_blank\">${url}</a>`;
+		}
+		$this.next().next().html(url);
 	});
 });
