@@ -150,6 +150,9 @@ class FieldtypeQRCode extends Fieldtype {
 					continue;
 				}
 				$field = $page->fields->get($fieldName);
+				if($field->getFieldtype() != "FieldtypeURL") {
+					continue;
+				}
 				$label = $field->label;
 				$text = $page->getUnformatted($fieldName);
 				$qr = $this->generateQRCode($text, $svg, $markup);
