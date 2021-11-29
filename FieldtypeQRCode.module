@@ -1,7 +1,7 @@
 <?php namespace ProcessWire;
 
 /**
- * Fieldtype generating a QR Code from the public URL of the page (and more)
+ * Fieldtype generating a QR code from the public URL of the page (and more)
  *
  * Copyright (c) 2021 Romain Cazier
  * Licensed under MIT License, see LICENSE
@@ -40,8 +40,8 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.8",
-			"summary" => "Generates a QR Code from the public URL of the page (and more)",
+			"version" => "1.0.9",
+			"summary" => "Generates a QR code from the public URL of the page (and more)",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
 		];
@@ -326,7 +326,12 @@ class FieldtypeQRCode extends Fieldtype {
 		if(!is_array($value)) {
 			return $value;
 		} elseif(!count($value)) {
-			return "<p>No QR code to output.<br>Please check your <a href=\"{$field->editUrl()}#fieldtypeConfig\" target=\"_blank\">source(s)</a>.</p>";
+			$out = "<p>";
+			$out .= $this->_("No QR code to output");
+			$out .= ".<br>";
+			$out .= sprintf($this->_('Please check your %1$ssource(s)%2$s'), "<a href=\"{$field->editUrl()}#fieldtypeConfig\" target=\"_blank\">", "</a>");
+			$out .= ".</p>";
+			return $out;
 		} else {
 			$out = "";
 			if(count($value) > 1) {
@@ -381,7 +386,7 @@ class FieldtypeQRCode extends Fieldtype {
 		$f = $this->modules->get("InputfieldRadios");
 		$f->attr("name", "format");
 		$f->columnWidth = 50;
-		$f->description = $this->_("Allows to select the image format of the QR Code.");
+		$f->description = $this->_("Allows to select the image format of the QR code");
 		$f->label = $this->_("Format");
 		$f->optionColumns = 1;
 		$f->value = $field->get("format");
@@ -417,9 +422,9 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	public function getInputfield(Page $page, Field $field) {
-		$url = $this->wire()->config->urls->{$this->className};
-		$this->wire()->config->styles->add("{$url}{$this->className}.css");
-		$this->wire()->config->scripts->add("{$url}{$this->className}.js");
+		$config = $this->wire()->config;
+		$config->styles->add($config->urls->{$this} . "{$this}.css");
+		$config->scripts->add($config->urls->{$this} . "{$this}.js");
 
 		/** @var InputfieldMarkup $inputfield */
 		$inputfield = $this->wire()->modules("InputfieldMarkup");
@@ -453,7 +458,7 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		throw new WireException("Field '{$query->field->name}' is runtime and not queryable");
+		throw new WireException(sprintf($this->_('Field "%s" is runtime only and not queryable'), $query->field->name));
 	}
 
 	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {

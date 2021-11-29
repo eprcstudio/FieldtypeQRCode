@@ -1,0 +1,11 @@
+en,fr,description,file,hash
+"No QR code to output","Aucun QR code à afficher",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,7c275c4a6198b020579a8fa7a63d8d8f
+"Please check your %1$ssource(s)%2$s","Merci de vérifier vos %1$ssources%2$s",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,3c0e5609b4d0c36bc8702ff1cbc0b1cc
+"Allows to select the image format of the QR code","Permet de choisir le format d'image du QR code",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,e79bbedd9046977da6d8063ae9a4d53f
+Format,=,,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,520d0db389f362bf79ef56ca0af3dcab
+"Allows to render the SVG markup directly, instead of a base64 image","Si activé, le code SVG sera généré directement au lieu d'une image en base64",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,7cc1d5ae466fb637d16563c0f2d89632
+"Render SVG Markup ?","Générer le code SVG ?",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,c1ccbe2dcb8b4358706afafca390a659
+Yes,Oui,,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,93cba07454f06a4a960172bbd6e2a435
+"Define which source(s) you want the QR code(s) to be generated from. You can either use ""httpUrl"" (""url"" will behave the same) and/or ""editUrl"" and/or the name of any text/URL/file/image field. You can also specify multiple sources by separating them with a comma. Default: ""httpUrl""","Définissez à partir de quelle(s) source(s) vous souhaitez générer le(s) QR code(s). Vous pouvez soit utiliser ""httpUrl"" (""url"" se comportera de la même manière) et/ou ""editUrl"" et/ou le nom de n'importe quel champ texte/URL/fichier/image. Vous pouvez également spécifier plusieurs sources en les séparant par une virgule. Par défaut: ""httpUrl""",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,5e420d217e62fdb4ea2a34565962cd00
+"QR code source(s)","Source(s) de(s) QR code(s)",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,11f778cc26c0c11a32b831044ac03bc2
+"Field ""%s"" is runtime only and not queryable","Le champ ""%s"" n'accepte pas de requête, étant hors de la base de données",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module,737650f6c9cf4e52fef009fc61e316d4
