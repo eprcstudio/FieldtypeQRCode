@@ -40,7 +40,7 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.9",
+			"version" => "1.0.10",
 			"summary" => "Generates a QR code from the public URL of the page (and more)",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
@@ -51,12 +51,14 @@ class FieldtypeQRCode extends Fieldtype {
 		require_once(dirname(__FILE__) . "/qrcode-generator.php");
 	}
 
-	public function ready() {
+	public function init() {
 		// This is to add cosmetics when outputting to Lister/ListerPro
-		$this->addHookAfter('FieldtypeQRCode::markupValue', function($event) {
+		$this->addHookAfter("FieldtypeQRCode::markupValue", function($event) {
 			$value = $event->arguments(2);
-			$value = str_replace("<img", "<img style=\"margin: 0 0.5em 0.5em 0;\"", $value);
-			$event->return = "<div style=\"margin-bottom: -0.5em;\">$value</div>";
+			if(!is_array($value)) {
+				$value = str_replace("<img", "<img style=\"margin: 0 0.5em 0.5em 0;\"", $value);
+				$event->return = "<div style=\"margin-bottom: -0.5em;\">$value</div>";
+			}
 		});
 	}
 
@@ -206,7 +208,7 @@ class FieldtypeQRCode extends Fieldtype {
 		if(!($page instanceof Page) && !($page instanceof LanguagesPageFieldValue)) return;
 
 		$default = $this->wire()->languages->getDefault();
-		$root = $this->wire()->pages(1);
+		$root = $this->wire()->pages->get(1);
 		$rootUrl = $root->url($default);
 
 		$qrcodes = [];
@@ -381,9 +383,11 @@ class FieldtypeQRCode extends Fieldtype {
 		if(is_null($field->get("markup"))) $field->set("markup", 0);
 		if(is_null($field->get("source"))) $field->set("source", "");
 
+		$modules = $this->wire()->modules;
+
 		$inputfields = parent::___getConfigInputfields($field);
 
-		$f = $this->modules->get("InputfieldRadios");
+		$f = $modules->get("InputfieldRadios");
 		$f->attr("name", "format");
 		$f->columnWidth = 50;
 		$f->description = $this->_("Allows to select the image format of the QR code");
@@ -393,7 +397,7 @@ class FieldtypeQRCode extends Fieldtype {
 		$f->addOptions(["svg" => ".svg", "gif" => ".gif"]);
 		$inputfields->add($f);
 
-		$f = $this->modules->get("InputfieldCheckbox");
+		$f = $modules->get("InputfieldCheckbox");
 		$f->attr("name", "markup");
 		$f->columnWidth = 50;
 		$f->description = $this->_("Allows to render the SVG markup directly, instead of a base64 image");
@@ -406,7 +410,7 @@ class FieldtypeQRCode extends Fieldtype {
 		}
 		$inputfields->add($f);
 
-		$f = $this->modules->get("InputfieldText");
+		$f = $modules->get("InputfieldText");
 		$f->attr("name", "source");
 		$f->description = $this->_("Define which source(s) you want the QR code(s) to be generated from. You can either use \"httpUrl\" (\"url\" will behave the same) and/or \"editUrl\" and/or the name of any text/URL/file/image field. You can also specify multiple sources by separating them with a comma. Default: \"httpUrl\"");
 		$f->label = $this->_("QR code source(s)");
@@ -427,7 +431,7 @@ class FieldtypeQRCode extends Fieldtype {
 		$config->scripts->add($config->urls->{$this} . "{$this}.js");
 
 		/** @var InputfieldMarkup $inputfield */
-		$inputfield = $this->wire()->modules("InputfieldMarkup");
+		$inputfield = $this->wire()->modules->get("InputfieldMarkup");
 
 		$inputfield->addHookBefore("render", function($event) use($page, $field) {
 			$event->replace = true;
