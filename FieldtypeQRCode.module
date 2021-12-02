@@ -53,7 +53,7 @@ class FieldtypeQRCode extends Fieldtype {
 
 	public function init() {
 		// This is to add cosmetics when outputting to Lister/ListerPro
-		$this->addHookAfter("FieldtypeQRCode::markupValue", function($event) {
+		$this->addHookAfter("FieldtypeQRCode::markupValue", function(HookEvent $event) {
 			$value = $event->arguments(2);
 			if(!is_array($value)) {
 				$value = str_replace("<img", "<img style=\"margin: 0 0.5em 0.5em 0;\"", $value);
@@ -433,12 +433,12 @@ class FieldtypeQRCode extends Fieldtype {
 		/** @var InputfieldMarkup $inputfield */
 		$inputfield = $this->wire()->modules->get("InputfieldMarkup");
 
-		$inputfield->addHookBefore("render", function($event) use($page, $field) {
+		$inputfield->addHookBefore("render", function(HookEvent $event) use($page, $field) {
 			$event->replace = true;
 			$event->return = $this->markupValue($page, $field, $event->object->value);
 		});
 
-		$inputfield->addHookAfter("getConfigInputfields", function($event) {
+		$inputfield->addHookAfter("getConfigInputfields", function(HookEvent $event) {
 			$inputfields = $event->return;
 			$options = [
 				Inputfield::collapsedNo,
