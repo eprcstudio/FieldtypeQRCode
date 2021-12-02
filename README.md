@@ -6,6 +6,10 @@ Using the PHP library [QR Code Generator](https://github.com/kazuhikoarase/qrcod
 
 ![screenshot](https://user-images.githubusercontent.com/6616448/143303398-ffcb4939-1ff4-4877-88c1-0bf7ad662daa.jpg)
 
+Modules directory: [https://processwire.com/modules/fieldtype-qrcode/](https://processwire.com/modules/fieldtype-qrcode/)
+
+Support forum: [https://processwire.com/talk/topic/25676-fieldtypeqrcode](https://processwire.com/talk/topic/25676-fieldtypeqrcode)
+
 ## Options
 
 In the field’s `Details` tab you can change between .gif or .svg formats. If you select .svg
