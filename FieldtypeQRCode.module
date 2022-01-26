@@ -40,7 +40,7 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.10",
+			"version" => "1.0.11",
 			"summary" => "Generates a QR code from the public URL of the page (and more)",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
@@ -289,7 +289,8 @@ class FieldtypeQRCode extends Fieldtype {
 		$this->svg = $field->get("format") === "svg";
 		$this->markup = $field->get("markup") === 1;
 
-		$languages = $page->getLanguages();
+		$user = $this->user;
+		$languages = $user->isGuest() ? [$user->language] : $page->getLanguages();
 		$sources = $this->parseSources($page, $field);
 	
 		return $this->generateQRCodes($page, $sources, $languages);
