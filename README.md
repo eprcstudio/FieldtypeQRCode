@@ -30,6 +30,7 @@ When using `$page->getUnformatted("qrcode_field")` it returns an array with the 
 	[
 		"label" => string,  // label used in the admin
 		"qr" => string,     // the qrcode image
+		"raw" => string,    // the raw qrcode image (in base64, except if svg+markup)
 		"source" => string, // the source, as defined in the configuration
 		"text" => string    // and the text used to generate the qrcode
 	],
