@@ -105,9 +105,9 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	/**
-	 * Generate the QR code(s) based on the configuration and return them in
-	 * an array of arrays containing the QR code image, its original text,
-	 * its label and its source (from the configuration)
+	 * Generates the QR code(s) based on the configuration and return them in
+	 * an array of arrays containing the QR code image, its original text, its
+	 * label and its source (from the configuration)
 	 *
 	 * @param Page $page
 	 * @param array $sources
@@ -125,30 +125,36 @@ class FieldtypeQRCode extends Fieldtype {
 					$qrcodes = array_merge($qrcodes, $lqr);
 				} else {
 					$text = $this->getQRText($page);
-					$qr = $this->generateQRCode($text, $this->svg, $this->markup);
+					$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
+					$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
 					$qrcodes[] = [
 						"label" => "URL",
 						"qr" => $qr,
+						"raw" => $raw,
 						"source" => $source,
 						"text" => $text,
 					];
 				}
 			} elseif($source === "editUrl") {
 				$text = $this->getQRText($page, true);
-				$qr = $this->generateQRCode($text, $this->svg, $this->markup);
+				$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
+				$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
 				$qrcodes[] = [
 					"label" => "Admin URL",
 					"qr" => $qr,
+					"raw" => $raw,
 					"source" => $source,
 					"text" => $text,
 				];
 			} elseif($f = $page->getUnformatted($source)) {
 				$label = $page->fields->get($source)->label;
 				if(is_string($f)) {
-					$qr = $this->generateQRCode($f, $this->svg, $this->markup);
+					$raw = $this->generateRawQRCode($f, $this->svg, $this->markup);
+					$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
 					$qrcodes[] = [
 						"label" => $label,
 						"qr" => $qr,
+						"raw" => $raw,
 						"source" => $source,
 						"text" => $f,
 					];
@@ -164,10 +170,12 @@ class FieldtypeQRCode extends Fieldtype {
 							$qrcodes = array_merge($qrcodes, $lqr);
 						} else {
 							$text = $this->getQRText($p);
-							$qr = $this->generateQRCode($text, $this->svg, $this->markup);
+							$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
+							$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
 							$qrcodes[] = [
 								"label" => "{$label}: {$p->title}",
 								"qr" => $qr,
+								"raw" => $raw,
 								"source" => $source,
 								"text" => $text,
 							];
@@ -176,10 +184,12 @@ class FieldtypeQRCode extends Fieldtype {
 				} else if($f instanceof Pagefiles) {
 					foreach($f as $file) {
 						$text = $this->getQRText($file);
-						$qr = $this->generateQRCode($text, $this->svg, $this->markup);
+						$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
+						$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
 						$qrcodes[] = [
 							"label" => "{$label}: {$file->basename()}",
 							"qr" => $qr,
+							"raw" => $raw,
 							"source" => $source,
 							"text" => $text,
 						];
@@ -192,7 +202,7 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	/**
-	 * Generate the QR code(s) for the page (or multi-languages field) in each
+	 * Generates the QR code(s) for the page (or multi-languages field) in each
 	 * languages
 	 *
 	 * @param Page|LanguagesPageFieldValue $page
@@ -234,10 +244,12 @@ class FieldtypeQRCode extends Fieldtype {
 			if($addTitle) {
 				$l .= $l ? ": $page->title" : $page->title;
 			}
-			$qr = $this->generateQRCode($text, $this->svg, $this->markup);
+			$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
+			$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
 			$qrcodes[] = [
 				"label" => $l,
 				"qr" => $qr,
+				"raw" => $raw,
 				"source" => $source,
 				"text" => $text,
 			];
@@ -247,7 +259,7 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	/**
-	 * Returns an array with the original text and the QR code image
+	 * Generates a QR code as an <img> or <svg>
 	 *
 	 * @param string $text
 	 * @param bool $svg Generate the QR code as svg instead of gif ? (default=true)
@@ -256,32 +268,52 @@ class FieldtypeQRCode extends Fieldtype {
 	 *
 	 */
 	public static function generateQRCode(string $text, $svg = true, $markup = false) {
+		if(strpos($text, "data:image/") === 0 || strpos($text, "<svg") === 0) {
+			$data = $text;
+		} else {
+			$data = self::generateRawQRCode($text, $svg, $markup);
+		}
+
+		if($svg && $markup) {
+			$qr = str_replace("svg\">", "svg\"><title>$text</title>", $data);
+		} else {
+			$qr = "<img src=\"$data\" alt=\"$text\" />";
+		}
+		
+		return $qr;
+	}
+
+	/**
+	 * Generates a QR code as a base64 of a gif or svg (or leave intact if we
+	 * want the markup)
+	 *
+	 * @param string $text
+	 * @param bool $svg Generate the QR code as svg instead of gif ? (default=true)
+	 * @param bool $markup If svg, output its markup instead of a base64 ? (default=false)
+	 * @return string
+	 *
+	 */
+	public static function generateRawQRCode(string $text, $svg = true, $markup = false) {
 		$qr = FieldtypeQRCode\QRCode::getMinimumQRCode($text, FieldtypeQRCode\QR_ERROR_CORRECT_LEVEL_L);
 
 		ob_start();
-		if ($svg) {
+		if($svg) {
 			$qr->printSVG();
 		} else {
 			$im = $qr->createImage(4, 4);
 			imagegif($im);
+			imagedestroy($im);
 		}
 		$data = ob_get_contents();
 		ob_end_clean();
 
-		if ($svg) {
-			$src = "data:image/svg+xml;base64," . base64_encode($data);
-		} else {
-			$src = "data:image/gif;base64," . base64_encode($data);
-			imagedestroy($im);
+		if($svg && !$markup) {
+			$data = "data:image/svg+xml;base64," . base64_encode($data);
+		} else if(!$svg) {
+			$data = "data:image/gif;base64," . base64_encode($data);
 		}
 
-		if ($svg && $markup) {
-			$qr = str_replace("svg\">", "svg\"><title>$text</title>", $data);
-		} else {
-			$qr = "<img src=\"$src\" alt=\"$text\" />";
-		}
-		
-		return $qr;
+		return $data;
 	}
 
 	public function ___wakeupValue(Page $page, Field $field, $value) {
@@ -297,7 +329,7 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	/**
-	 * Parse the sources from the configuration and return them in an array
+	 * Parses the sources from the configuration and return them in an array
 	 *
 	 * @param Field $field
 	 * @return array
@@ -377,6 +409,14 @@ class FieldtypeQRCode extends Fieldtype {
 		}
 		$out .= "</select>";
 		return $out;
+	}
+
+	/**
+	 * TODO: add get function to allow to return a specific source / language
+	 *
+	 */
+	public function get($key) {
+		return parent::get($key);
 	}
 
 	public function ___getConfigInputfields(Field $field) {
