@@ -40,7 +40,7 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.12",
+			"version" => "1.0.13",
 			"summary" => "Generates a QR code from the public URL of the page (and more)",
 			"href" => "https://github.com/romaincazier/FieldtypeQRCode",
 			"icon" => "qrcode",
@@ -127,6 +127,7 @@ class FieldtypeQRCode extends Fieldtype {
 					$text = $this->getQRText($page);
 					$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
 					$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
+					$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
 					$qrcodes[] = [
 						"label" => "URL",
 						"qr" => $qr,
@@ -139,6 +140,7 @@ class FieldtypeQRCode extends Fieldtype {
 				$text = $this->getQRText($page, true);
 				$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
 				$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
+				$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
 				$qrcodes[] = [
 					"label" => "Admin URL",
 					"qr" => $qr,
@@ -151,6 +153,7 @@ class FieldtypeQRCode extends Fieldtype {
 				if(is_string($f)) {
 					$raw = $this->generateRawQRCode($f, $this->svg, $this->markup);
 					$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
+					$qr = str_replace("<img", "<img alt=\"$f\"", $qr);
 					$qrcodes[] = [
 						"label" => $label,
 						"qr" => $qr,
@@ -172,6 +175,7 @@ class FieldtypeQRCode extends Fieldtype {
 							$text = $this->getQRText($p);
 							$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
 							$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
+							$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
 							$qrcodes[] = [
 								"label" => "{$label}: {$p->title}",
 								"qr" => $qr,
@@ -186,6 +190,7 @@ class FieldtypeQRCode extends Fieldtype {
 						$text = $this->getQRText($file);
 						$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
 						$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
+						$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
 						$qrcodes[] = [
 							"label" => "{$label}: {$file->basename()}",
 							"qr" => $qr,
@@ -246,6 +251,7 @@ class FieldtypeQRCode extends Fieldtype {
 			}
 			$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
 			$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
+			$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
 			$qrcodes[] = [
 				"label" => $l,
 				"qr" => $qr,
@@ -277,7 +283,7 @@ class FieldtypeQRCode extends Fieldtype {
 		if($svg && $markup) {
 			$qr = str_replace("svg\">", "svg\"><title>$text</title>", $data);
 		} else {
-			$qr = "<img src=\"$data\" alt=\"$text\" />";
+			$qr = "<img src=\"$data\" />";
 		}
 		
 		return $qr;
