@@ -21,6 +21,11 @@
 	height: auto;
 }
 
+.gridQRCode > img[src*="svg"],
+.gridQRCode > svg {
+	min-width: 100px;
+}
+
 .contentQRCode {
 	color: #aaa;
 	font-size: .875rem;
