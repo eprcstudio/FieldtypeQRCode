@@ -40,7 +40,7 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.14",
+			"version" => "1.0.15",
 			"summary" => "Generates a QR code from the public URL of the page (and more)",
 			"href" => "https://github.com/eprcstudio/FieldtypeQRCode",
 			"icon" => "qrcode",
@@ -120,7 +120,7 @@ class FieldtypeQRCode extends Fieldtype {
 
 		foreach($sources as $source) {
 			if($source === "httpUrl") {
-				if($languages) {
+				if(!empty($languages)) {
 					$lqr = $this->generateLanguagesQRCodes($page, $source, $languages, "URL");
 					$qrcodes = array_merge($qrcodes, $lqr);
 				} else {
@@ -162,13 +162,13 @@ class FieldtypeQRCode extends Fieldtype {
 						"text" => $f,
 					];
 				} else if($f instanceof LanguagesPageFieldValue) {
-					if($languages) {
+					if(!empty($languages)) {
 						$lqr = $this->generateLanguagesQRCodes($f, $source, $languages, $label);
 						$qrcodes = array_merge($qrcodes, $lqr);
 					}
 				} else if($f instanceof Pagearray) {
 					foreach($f as $p) {
-						if($languages) {
+						if(!empty($languages)) {
 							$lqr = $this->generateLanguagesQRCodes($p, $source, $languages, $label, true);
 							$qrcodes = array_merge($qrcodes, $lqr);
 						} else {
@@ -327,8 +327,10 @@ class FieldtypeQRCode extends Fieldtype {
 		$this->svg = $field->get("format") !== "gif";
 		$this->markup = $field->get("markup") === 1;
 
-		$user = $this->user;
-		$languages = $user->isGuest() ? [$user->language] : $page->getLanguages();
+		if($languages = $page->getLanguages()) {
+			$user = $this->user;
+			$languages = $user->isGuest() ?	[$user->language] : $languages;
+		}
 		$sources = $this->parseSources($page, $field);
 	
 		return $this->generateQRCodes($page, $sources, $languages);
