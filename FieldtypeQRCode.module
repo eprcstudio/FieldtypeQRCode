@@ -40,7 +40,7 @@ class FieldtypeQRCode extends Fieldtype {
 		return [
 			"title" => "QR Code",
 			"author" => "Romain Cazier",
-			"version" => "1.0.15",
+			"version" => "1.1.0",
 			"summary" => "Generates a QR code from the public URL of the page (and more)",
 			"href" => "https://github.com/eprcstudio/FieldtypeQRCode",
 			"icon" => "qrcode",
@@ -398,11 +398,19 @@ class FieldtypeQRCode extends Fieldtype {
 			}
 			$out .= "</ul>";
 			$out .= "<p class=\"contentQRCode\">";
-			if(strpos($firstQR, "://") !== false) {
+			if(
+				strpos($firstQR, "http") === 0
+				|| strpos($firstQR, "mailto") === 0
+				|| strpos($firstQR, "tel") === 0
+			) {
 				$out .= "<a href=\"$firstQR\" target=\"_blank\">";
 			}
 			$out .= $firstQR;
-			if(strpos($firstQR, "://") !== false) {
+			if(
+				strpos($firstQR, "http") === 0
+				|| strpos($firstQR, "mailto") === 0
+				|| strpos($firstQR, "tel") === 0
+			) {
 				$out .= "</a>";
 			}
 			$out .= "</p>";

@@ -6,7 +6,7 @@
 .gridQRCode {
 	display: none;
 	max-width: 100%;
-	padding: .2em;
+	padding: 0.2em;
 	background: #fff;
 	border: 1px solid #ddd;
 	border-radius: 2px;
@@ -28,8 +28,9 @@
 
 .contentQRCode {
 	color: #aaa;
-	font-size: .875rem;
+	font-size: 0.875rem;
 	line-height: 1.5;
+	white-space: pre;
 }
 
 .contentQRCode > a {
