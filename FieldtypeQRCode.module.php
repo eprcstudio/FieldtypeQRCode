@@ -227,7 +227,7 @@ class FieldtypeQRCode extends Fieldtype {
 	 * @param string $text
 	 * @param bool $svg Generate the QR code as svg instead of gif? (default=true)
 	 * @param bool $markup If svg, output its markup instead of a base64? (default=false)
-	 * @param int $recoveryLevel Allow better data recovery in case of physical damage
+	 * @param int $recoveryLevel Allow better data recovery in case of visual damage
 	 * (`L` = 7% recovered, `M` = 15%, `Q` = 25%, `H` = 30%)
 	 * @return string
 	 *
@@ -255,7 +255,7 @@ class FieldtypeQRCode extends Fieldtype {
 	 * @param string $text
 	 * @param bool $svg Generate the QR code as svg instead of gif? (default=true)
 	 * @param bool $markup If svg, output its markup instead of a base64? (default=false)
-	 * @param int $recoveryLevel Allow better data recovery in case of physical damage
+	 * @param int $recoveryLevel Allow better data recovery in case of visual damage
 	 * (`L` = 7% recovered, `M` = 15%, `Q` = 25%, `H` = 30%)
 	 * @return string
 	 *

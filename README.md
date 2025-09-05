@@ -19,6 +19,13 @@ You can also change what is used to generate the QR code and even have several s
 
 If `LanguageSupport` is installed the compatible sources (`httpUrl`, text field, ...) will return as many QR codes as there are languages. Note however that when outputting on the front-end, only the languages visible to the user will be generated.
 
+Additionally you can set the error correction level which allows to better recover lost data in case of visual damage. [This is also used when covering part of a QR code with a logo](https://en.wikipedia.org/wiki/QR_code#Error_correction). There are four levels of correction:
+
+-   `L`, with 7% of potential data recovery
+-   `M`, with 15% of potential data recovery
+-   `Q`, with 25% of potential data recovery
+-   and `H`, with 30% of potential data recovery
+
 ## Formatting
 
 ### Unformatted value
@@ -57,13 +64,15 @@ You can call `FieldtypeQRCode::generateQRCode` to generate any QR code you want.
 
 ```
 string $text
-bool   $svg    Generate the QR code as svg instead of gif ? (default=true)
-bool   $markup If svg, output its markup instead of a base64 ? (default=false)
+bool   $svg           Generate the QR code as svg instead of gif ? (default=true)
+bool   $markup        If svg, output its markup instead of a base64 ? (default=false)
+string $recoveryLevel Set error correction level (default="L")
 ```
 
 ## Hooks
 
 Please have a look at the source code for more details about the hookable functions.
+
 ### Examples
 
 ```php
@@ -87,3 +96,14 @@ $wire->addHookAfter("FieldtypeQRCode::generateQRCodes", function($event) {
 	$event->return = $qrcodes;
 })
 ```
+
+## Note
+
+Depending on the level of correction set and the type of characters encoded in the QR code, [the maximum size allowed for a QR code can vary](https://en.wikipedia.org/wiki/QR_code#Information_capacity). It is adviced to set a maximum character count on textareas or any relevant Inputfields
+
+| Recovery Level | Numeric | Alphanumeric | Byte | Kanji |
+| -------------- | ------- | ------------ | ---- | ----- |
+| L (7%)         | 7089    | 4296         | 2953 | 1817  |
+| M (15%)        | 5596    | 3391         | 2331 | 1435  |
+| Q (25%)        | 3993    | 2420         | 1663 | 1024  |
+| H (30%)        | 3057    | 1852         | 1273 | 784   |
