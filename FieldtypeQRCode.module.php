@@ -3,7 +3,7 @@
 /**
  * Fieldtype generating a QR code from the public URL of the page (and more)
  *
- * Copyright (c) 2021 Romain Cazier
+ * Copyright (c) 2025 Romain Cazier
  * Licensed under MIT License, see LICENSE
  *
  * https://eprc.studio
@@ -36,16 +36,15 @@ class FieldtypeQRCode extends Fieldtype {
 	 */
 	protected $markup = false;
 
-	public static function getModuleInfo() {
-		return [
-			"title" => "QR Code",
-			"author" => "Romain Cazier",
-			"version" => "1.1.0",
-			"summary" => "Generates a QR code from the public URL of the page (and more)",
-			"href" => "https://github.com/eprcstudio/FieldtypeQRCode",
-			"icon" => "qrcode",
-		];
-	}
+	/**
+	 * Level of error correction / data recovery for damaged QR codes
+	 * 
+	 * Level L: 7% recovery
+	 * Level M: 15% recovery
+	 * Level Q: 25% recovery
+	 * Level H: 30% recovery
+	 */
+	protected $recoveryLevel = "L";
 
 	public function __construct() {
 		require_once(dirname(__FILE__) . "/qrcode-generator.php");
@@ -63,22 +62,22 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	/**
-	 * Returns the text to generate the QR code.
+	 * Returns the text to generate the QR code. Defaults to `httpUrl`
 	 *
-	 * @param Page|Pagefile|Pageimage $page The source page/pagefile/pageimage
+	 * @param Page|Pagefile|Pageimage $page The source Page/Pagefile/Pageimage
 	 * @param bool|Language|array $options Specify true to output the page's
 	 * `editURL`, a Language object to return URL in that Language or use
 	 * $options array:
-	 *  - `edit` (bool): True to output the page's `editURL`.
-	 *  - `language` (Language|bool): Optionally specify Language, or boolean
-	 * true to force current user language.
+	 *  - `edit` (bool): Set to `true` to output the page's `editURL`.
+	 *  - `language` (Language|bool): Optionally specify Language, or `true` to
+	 * force current user language.
 	 * @return string
 	 *
 	 */
 	public function ___getQRText($page, $options = []) {
+		$url = $page->httpUrl;
 		if(is_array($options)) {
-			$url = $page->httpUrl;
-			if(!empty($options["edit"]) && $page instanceof Page) {
+			if($page instanceof Page && !empty($options["edit"])) {
 				if(empty($options["language"])) {
 					$url = $page->editUrl(true);
 					$url = preg_replace("/&language=\d+/", "", $url);
@@ -88,17 +87,17 @@ class FieldtypeQRCode extends Fieldtype {
 						"language" => $options["language"]
 					]);
 				}
-			} else if(!empty($options["language"]) && $page instanceof Page) {
+			} else if($page instanceof Page && !empty($options["language"])) {
 				if($options["language"] === true) {
 					$url = $page->localHttpUrl();
 				} else {
 					$url = $page->httpUrl($options["language"]);
 				}
 			}
-		} else if($options === true && $page instanceof Page) {
+		} else if($page instanceof Page && $options === true) {
 			$url = $page->editUrl(true);
 			$url = preg_replace("/&language=\d+/", "", $url);
-		} else if($options instanceof Language && $page instanceof Page) {
+		} else if($page instanceof Page && $options instanceof Language) {
 			$url = $page->httpUrl($options);
 		}
 		return $url;
@@ -119,85 +118,39 @@ class FieldtypeQRCode extends Fieldtype {
 		$qrcodes = [];
 
 		foreach($sources as $source) {
+			if(!is_string($source)) continue;
 			if($source === "httpUrl") {
 				if(!empty($languages)) {
 					$lqr = $this->generateLanguagesQRCodes($page, $source, $languages, "URL");
 					$qrcodes = array_merge($qrcodes, $lqr);
-				} else {
-					$text = $this->getQRText($page);
-					$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
-					$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
-					$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
-					$qrcodes[] = [
-						"label" => "URL",
-						"qr" => $qr,
-						"raw" => $raw,
-						"source" => $source,
-						"text" => $text,
-					];
+					continue;
 				}
+				$text = $this->getQRText($page);
+				$qrcodes[] = $this->generateQRCodeData($text, "URL", $source);
 			} elseif($source === "editUrl") {
 				$text = $this->getQRText($page, true);
-				$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
-				$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
-				$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
-				$qrcodes[] = [
-					"label" => "Admin URL",
-					"qr" => $qr,
-					"raw" => $raw,
-					"source" => $source,
-					"text" => $text,
-				];
+				$qrcodes[] = $this->generateQRCodeData($text, "Admin URL", $source);
 			} elseif($f = $page->getUnformatted($source)) {
 				$label = $page->fields->get($source)->label;
 				if(is_string($f)) {
-					$raw = $this->generateRawQRCode($f, $this->svg, $this->markup);
-					$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
-					$qr = str_replace("<img", "<img alt=\"$f\"", $qr);
-					$qrcodes[] = [
-						"label" => $label,
-						"qr" => $qr,
-						"raw" => $raw,
-						"source" => $source,
-						"text" => $f,
-					];
-				} else if($f instanceof LanguagesPageFieldValue) {
-					if(!empty($languages)) {
-						$lqr = $this->generateLanguagesQRCodes($f, $source, $languages, $label);
-						$qrcodes = array_merge($qrcodes, $lqr);
-					}
+					$qrcodes[] = $this->generateQRCodeData($f, $label, $source);
+				} else if($f instanceof LanguagesPageFieldValue && !empty($languages)) {
+					$lqr = $this->generateLanguagesQRCodes($f, $source, $languages, $label);
+					$qrcodes = array_merge($qrcodes, $lqr);
 				} else if($f instanceof Pagearray) {
 					foreach($f as $p) {
 						if(!empty($languages)) {
 							$lqr = $this->generateLanguagesQRCodes($p, $source, $languages, $label, true);
 							$qrcodes = array_merge($qrcodes, $lqr);
-						} else {
-							$text = $this->getQRText($p);
-							$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
-							$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
-							$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
-							$qrcodes[] = [
-								"label" => "{$label}: {$p->title}",
-								"qr" => $qr,
-								"raw" => $raw,
-								"source" => $source,
-								"text" => $text,
-							];
+							continue;
 						}
+						$text = $this->getQRText($p);
+						$qrcodes[] = $this->generateQRCodeData($text, "{$label}: {$p->title}", $source);
 					}
 				} else if($f instanceof Pagefiles) {
 					foreach($f as $file) {
 						$text = $this->getQRText($file);
-						$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
-						$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
-						$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
-						$qrcodes[] = [
-							"label" => "{$label}: {$file->basename()}",
-							"qr" => $qr,
-							"raw" => $raw,
-							"source" => $source,
-							"text" => $text,
-						];
+						$qrcodes[] = $this->generateQRCodeData($text, "{$label}: {$file->basename()}", $source);
 					}
 				}
 			}
@@ -249,35 +202,41 @@ class FieldtypeQRCode extends Fieldtype {
 			if($addTitle) {
 				$l .= $l ? ": $page->title" : $page->title;
 			}
-			$raw = $this->generateRawQRCode($text, $this->svg, $this->markup);
-			$qr = $this->generateQRCode($raw, $this->svg, $this->markup);
-			$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
-			$qrcodes[] = [
-				"label" => $l,
-				"qr" => $qr,
-				"raw" => $raw,
-				"source" => $source,
-				"text" => $text,
-			];
+			$qrcodes[] = $this->generateQRCodeData($text, $l, $source);
 		}
 
 		return $qrcodes;
+	}
+
+	protected function generateQRCodeData(string $text, string $label, string $source) {
+		$raw = self::generateRawQRCode($text, $this->svg, $this->markup, $this->recoveryLevel);
+		$qr = self::generateQRCode($raw, $this->svg, $this->markup, $this->recoveryLevel);
+		$qr = str_replace("<img", "<img alt=\"$text\"", $qr);
+		return [
+			"label" => $label,
+			"qr" => $qr,
+			"raw" => $raw,
+			"source" => $source,
+			"text" => $text,
+		];
 	}
 
 	/**
 	 * Generates a QR code as an <img> or <svg>
 	 *
 	 * @param string $text
-	 * @param bool $svg Generate the QR code as svg instead of gif ? (default=true)
-	 * @param bool $markup If svg, output its markup instead of a base64 ? (default=false)
+	 * @param bool $svg Generate the QR code as svg instead of gif? (default=true)
+	 * @param bool $markup If svg, output its markup instead of a base64? (default=false)
+	 * @param int $recoveryLevel Allow better data recovery in case of physical damage
+	 * (`L` = 7% recovered, `M` = 15%, `Q` = 25%, `H` = 30%)
 	 * @return string
 	 *
 	 */
-	public static function generateQRCode(string $text, $svg = true, $markup = false) {
+	public static function generateQRCode(string $text, $svg = true, $markup = false, $recoveryLevel = "L") {
 		if(strpos($text, "data:image/") === 0 || strpos($text, "<svg") === 0) {
 			$data = $text;
 		} else {
-			$data = self::generateRawQRCode($text, $svg, $markup);
+			$data = self::generateRawQRCode($text, $svg, $markup, $recoveryLevel);
 		}
 
 		if($svg && $markup) {
@@ -294,13 +253,21 @@ class FieldtypeQRCode extends Fieldtype {
 	 * want the markup)
 	 *
 	 * @param string $text
-	 * @param bool $svg Generate the QR code as svg instead of gif ? (default=true)
-	 * @param bool $markup If svg, output its markup instead of a base64 ? (default=false)
+	 * @param bool $svg Generate the QR code as svg instead of gif? (default=true)
+	 * @param bool $markup If svg, output its markup instead of a base64? (default=false)
+	 * @param int $recoveryLevel Allow better data recovery in case of physical damage
+	 * (`L` = 7% recovered, `M` = 15%, `Q` = 25%, `H` = 30%)
 	 * @return string
 	 *
 	 */
-	public static function generateRawQRCode(string $text, $svg = true, $markup = false) {
-		$qr = FieldtypeQRCode\QRCode::getMinimumQRCode($text, FieldtypeQRCode\QR_ERROR_CORRECT_LEVEL_L);
+	public static function generateRawQRCode(string $text, $svg = true, $markup = false, $recoveryLevel = "L") {
+		switch($recoveryLevel) {
+			case "L": $recoveryLevel = 1; break;
+			case "M": $recoveryLevel = 0; break;
+			case "Q": $recoveryLevel = 3; break;
+			case "H": $recoveryLevel = 2; break;
+		}
+		$qr = FieldtypeQRCode\QRCode::getMinimumQRCode($text, $recoveryLevel);
 
 		ob_start();
 		if($svg) {
@@ -326,6 +293,7 @@ class FieldtypeQRCode extends Fieldtype {
 		$field = $field->getContext($page);
 		$this->svg = $field->get("format") !== "gif";
 		$this->markup = $field->get("markup") === 1;
+		$this->recoveryLevel = $field->get("recovery");
 
 		if($languages = $page->getLanguages()) {
 			$user = $this->user;
@@ -372,7 +340,11 @@ class FieldtypeQRCode extends Fieldtype {
 			$out = "<p>";
 			$out .= $this->_("No QR code to output");
 			$out .= ".<br>";
-			$out .= sprintf($this->_('Please check your %1$ssource(s)%2$s'), "<a href=\"{$field->editUrl()}#fieldtypeConfig\" target=\"_blank\">", "</a>");
+			$out .= sprintf(
+				$this->_('Please check your %1$ssource(s)%2$s'),
+				"<a href=\"{$field->editUrl()}#fieldtypeConfig\" target=\"_blank\">",
+				"</a>"
+			);
 			$out .= ".</p>";
 			return $out;
 		} else {
@@ -439,46 +411,88 @@ class FieldtypeQRCode extends Fieldtype {
 		if(is_null($field->get("format"))) $field->set("format", "svg");
 		if(is_null($field->get("markup"))) $field->set("markup", 0);
 		if(is_null($field->get("source"))) $field->set("source", "");
+		if(is_null($field->get("recovery"))) $field->set("recovery", "L");
 
 		$modules = $this->wire()->modules;
 
 		$inputfields = parent::___getConfigInputfields($field);
 
-		$f = $modules->get("InputfieldRadios");
-		$f->attr("name", "format");
-		$f->columnWidth = 50;
-		$f->description = $this->_("Allows to select the image format of the QR code");
-		$f->label = $this->_("Format");
-		$f->optionColumns = 1;
-		$f->value = $field->get("format");
-		$f->addOptions(["svg" => ".svg", "gif" => ".gif"]);
-		$inputfields->add($f);
+		/** @var InputfieldRadios $radios */
+		$radios = $modules->get("InputfieldRadios");
+		$radios->attr("name", "format");
+		$radios->columnWidth = 50;
+		$radios->description = $this->_("Allows to select the image format of the QR code");
+		$radios->icon = "file";
+		$radios->label = $this->_("Format");
+		$radios->optionColumns = 1;
+		$radios->value = $field->get("format");
+		$radios->addOptions(["svg" => ".svg", "gif" => ".gif"]);
+		$inputfields->add($radios);
 
-		$f = $modules->get("InputfieldCheckbox");
-		$f->attr("name", "markup");
-		$f->columnWidth = 50;
-		$f->description = $this->_("Allows to render the SVG markup directly, instead of a base64 image");
-		$f->label = $this->_("Render SVG Markup ?");
-		$f->label2 = $this->_("Yes");
-		$f->showIf("format=svg");
-		$f->value = $field->get("markup");
+		/** @var InputfieldCheckbox $checkbox */
+		$checkbox = $modules->get("InputfieldCheckbox");
+		$checkbox->attr("name", "markup");
+		$checkbox->columnWidth = 50;
+		$checkbox->description = $this->_("Allows to render the SVG markup directly, instead of a base64 image");
+		$checkbox->icon = "code";
+		$checkbox->label = $this->_("Render SVG Markup?");
+		$checkbox->label2 = $this->_("Yes");
+		$checkbox->showIf("format=svg");
+		$checkbox->value = $field->get("markup");
 		if($field->get("markup") === 1) {
-			$f->checked(true);
+			$checkbox->checked(true);
 		}
-		$inputfields->add($f);
+		$inputfields->add($checkbox);
 
-		$f = $modules->get("InputfieldText");
-		$f->attr("name", "source");
-		$f->description = $this->_("Define which source(s) you want the QR code(s) to be generated from. You can either use \"httpUrl\" (\"url\" will behave the same) and/or \"editUrl\" and/or the name of any text/URL/file/image field. You can also specify multiple sources by separating them with a comma. Default: \"httpUrl\"");
-		$f->label = $this->_("QR code source(s)");
-		$f->value = $field->get("source");
-		$inputfields->add($f);
+		/** @var InputfieldText $text */
+		$text = $modules->get("InputfieldText");
+		$text->attr("name", "source");
+		$text->description = $this->_("Define which source(s) you want the QR code(s) to be generated from. You can either use `httpUrl` (`url` will behave the same) and/or `editUrl` and/or the name of any text/URL/file/image field. You can also specify multiple sources by separating them with a comma. Default: `httpUrl`");
+		$text->icon = "database";
+		$text->label = $this->_("QR code source(s)");
+		$text->value = $field->get("source");
+		$inputfields->add($text);
+
+		/** @var InputfieldSelect $select */
+		$select = $modules->get("InputfieldSelect");
+		$select->attr("name", "recovery");
+		$select->columnWidth = 100;
+		$select->description = $this->_("Allows to recover different levels of lost data if the QR code is visually damaged. Please note this reduces the maximum size of the QR code");
+		$select->icon = "qrcode";
+		$select->label = $this->_("Set the error correction level");
+		$select->value = $field->get("recovery");
+		$select->addOptions([
+			"L" => "Level L: 7% of data can be restored", 
+			"M" => "Level M: 15% of data can be restored",
+			"Q" => "Level Q: 25% of data can be restored",
+			"H" => "Level H: 30% of data can be restored"
+		]);
+		$inputfields->add($select);
+
+		/** @var InputfieldText $text */
+		$markup = $modules->get("InputfieldMarkup");
+		$markup->description = $this->_("Depending on the level of correction set and the type of characters encoded in the QR code, [the maximum size allowed for a QR code can vary](https://en.wikipedia.org/wiki/QR_code#Information_capacity). It is adviced to set a maximum character count on textareas or any relevant Inputfields");
+		$markup->icon = "exclamation-triangle";
+		$markup->label = $this->_("Maximum QR code size");
+		/** @var MarkupAdminDataTable $table */
+		$table = $modules->get("MarkupAdminDataTable");
+		$table->setResponsive(false);
+		$table->setSortable(false);
+		$table->headerRow([
+			"Recovery Level", "Numeric", "Alphanumeric", "Byte", "Kanji"
+		]);
+		$table->row(["L (7%)", 7089, 4296, 2953, 1817]);
+		$table->row(["M (15%)", 5596, 3391, 2331, 1435]);
+		$table->row(["Q (25%)", 3993, 2420, 1663, 1024]);
+		$table->row(["H (30%)", 3057, 1852, 1273, 784]);
+		$markup->value = $table->render();
+		$inputfields->add($markup);
 
 		return $inputfields;
 	}
 
 	public function ___getConfigAllowContext(Field $field) {
-		$fields = ["format", "markup", "source"];
+		$fields = ["format", "markup", "source", "recovery"];
 		return array_merge(parent::___getConfigAllowContext($field), $fields);
 	}
 
