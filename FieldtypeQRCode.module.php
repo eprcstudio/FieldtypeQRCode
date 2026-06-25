@@ -50,10 +50,6 @@ class FieldtypeQRCode extends Fieldtype {
 	 */
 	protected $recoveryLevel = "L";
 
-	public function __construct() {
-		require_once(dirname(__FILE__) . "/qrcode-generator.php");
-	}
-
 	public function init() {
 		// This is to add cosmetics when outputting to Lister/ListerPro
 		$this->addHookAfter("FieldtypeQRCode::markupValue", function(HookEvent $event) {
@@ -265,6 +261,10 @@ class FieldtypeQRCode extends Fieldtype {
 	 *
 	 */
 	public static function generateRawQRCode(string $text, $svg = true, $markup = false, $recoveryLevel = "L") {
+		if(!class_exists("ProcessWire\FieldtypeQRCode\QRCode")) {
+			require_once(dirname(__FILE__) . "/qrcode-generator.php");
+		}
+
 		switch($recoveryLevel) {
 			case "L": $recoveryLevel = 1; break;
 			case "M": $recoveryLevel = 0; break;
