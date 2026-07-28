@@ -510,19 +510,19 @@ class QRCode {
 		$fgrgb = $this->hex2rgb($fg);
 		$bgrgb = $this->hex2rgb($bg);
 
-		// replace $black and $white with $fgc and $bgc
+		// replace black and white with $fgc and $bgc
 		$fgc = imagecolorallocate($image, $fgrgb['r'], $fgrgb['g'], $fgrgb['b']);
 		$bgc = imagecolorallocate($image, $bgrgb['r'], $bgrgb['g'], $bgrgb['b']);
 		if ($bgtrans) imagecolortransparent($image, $bgc);
 
-		// update $white to $bgc
+		// update white to $bgc
 		imagefilledrectangle($image, 0, 0, $image_size, $image_size, $bgc);
 
 		for ($r = 0; $r < $this->getModuleCount(); $r++) {
 			for ($c = 0; $c < $this->getModuleCount(); $c++) {
 				if ($this->isDark($r, $c)) {
 
-					// update $black to $fgc
+					// update black to $fgc
 					imagefilledrectangle(
 						$image,
 						$margin + $c * $size,
@@ -538,7 +538,9 @@ class QRCode {
 		return $image;
 	}
 
-	function printHTML($size = "2px") {
+	function printHTML($size = 2, $fg = "#000000", $bg = "#FFFFFF", $bgtrans = false) {
+		
+		$bgc = $bgtrans ? "transparent" : $bg;
 
 		$style = "border-style:none;border-collapse:collapse;margin:0px;padding:0px;";
 
@@ -549,8 +551,8 @@ class QRCode {
 			print("<tr style='$style'>");
 
 			for ($c = 0; $c < $this->getModuleCount(); $c++) {
-				$color = $this->isDark($r, $c)? "#000000" : "#ffffff";
-				print("<td style='$style;width:$size;height:$size;background-color:$color'></td>");
+				$color = $this->isDark($r, $c) ? $fg : $bgc;
+				print("<td style='" . $style . ";width:" . $size . "px;height:" . $size . "px;background-color:" . $color . "'></td>");
 			}
 
 			print("</tr>");
@@ -559,7 +561,7 @@ class QRCode {
 		print("</table>");
 	}
 	
-	public function printSVG($size = 2)
+	public function printSVG($size = 2, $fg = "#000000", $bg = "#FFFFFF", $bgtrans = false)
 	{
 		$width = $this->getModuleCount() * $size;
 		$height = $width;
@@ -567,7 +569,9 @@ class QRCode {
 
 		for ($r = 0; $r < $this->getModuleCount(); $r++) {
 			for ($c = 0; $c < $this->getModuleCount(); $c++) {
-				$color = $this->isDark($r, $c) ? "#000000" : "#ffffff";
+				$isDark = $this->isDark($r, $c);
+				if($bgtrans && !$isDark) continue;
+				$color = $isDark ? $fg : $bg;
 				print('<rect x="' . ($c * $size) . '" y="' . ($r * $size) . '" width="' . $size . '" height="' . $size . '" fill="' . $color . '"/>');
 			}
 		}
