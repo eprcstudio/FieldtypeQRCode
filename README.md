@@ -12,8 +12,7 @@ Support forum: [https://processwire.com/talk/topic/25676-fieldtypeqrcode](https:
 
 ## Options
 
-In the field’s `Details` tab you can change between .gif or .svg formats. If you select .svg
-you will have the option to directly output the markup instead of a base64 image. SVG is the default.
+In the field’s `Details` tab you can change between .gif or .svg formats. If you select .svg you will have the option to directly output the markup instead of a base64 image. SVG is the default.
 
 You can also change what is used to generate the QR code and even have several sources. The accepted sources (separated by a comma) are: `httpUrl`, `editUrl`, or the name of any text/URL/file/image field.
 
@@ -25,6 +24,8 @@ Additionally you can set the error correction level which allows to better recov
 -   `M`, with 15% of potential data recovery
 -   `Q`, with 25% of potential data recovery
 -   and `H`, with 30% of potential data recovery
+
+Since 1.2.0, the appearance of the QR code can be adapted to your likings with the ability to set a module’s (one of the small square) size in pixels, change the foreground and background colors, or even set the background to be transparent.
 
 ## Formatting
 
@@ -60,13 +61,27 @@ But it’s a bit cumbersome, plus you need to import the FieldtypeQRCode's css/j
 
 ## Static QR code generator
 
-You can call `FieldtypeQRCode::generateQRCode` to generate any QR code you want. Its arguments are:
+You can call `FieldtypeQRCode::generateQRCode` (or `FieldtypeQRCode::generateRawQRCode`) to generate any QR code you want. Its arguments are:
 
 ```
-string $text
-bool   $svg           Generate the QR code as svg instead of gif ? (default=true)
-bool   $markup        If svg, output its markup instead of a base64 ? (default=false)
-string $recoveryLevel Set error correction level (default="L")
+string     $text
+bool|array $svg           Generate the QR code as svg instead of gif? (default=true)
+bool       $markup        If svg, output its markup instead of a base64? (default=false)
+string     $recoveryLevel Set error correction level (default="L")
+```
+
+If you pass an array instead of a boolean for `svg` you can set the following options:
+
+```php
+[
+	"svg" => true,
+	"markup" => false,
+	"recoveryLevel" => "L",
+	"size" => 2,
+	"foreground" => "#000000",
+	"background" => "#FFFFFF",
+	"transparent" => false,
+]
 ```
 
 ## Hooks
