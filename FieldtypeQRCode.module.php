@@ -787,7 +787,7 @@ class FieldtypeQRCode extends Fieldtype {
 					$this->_("This version introduces a breaking change related to the module’s hookable methods, please have a look at the [support forum](%s) to learn more"),
 					"https://processwire.com/talk/topic/25676-fieldtypeqrcode"
 				),
-				Notice::allowMarkup
+				Notice::allowMarkdown
 			);
 		}
 	}
