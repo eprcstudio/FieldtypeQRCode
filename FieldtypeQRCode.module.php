@@ -17,9 +17,9 @@
  * QRCode-Generator library by Kazuhiko Arase
  * https://github.com/kazuhikoarase/qrcode-generator/
  *
- * @method string getQRText($page, $options = []) Returns the text to generate the QR code. Defaults to `httpUrl`
- * @method array generateQRCodes(Page $page, array $sources = [], $languages = null) Generates the QR code(s)
- * @method array generateLanguagesQRCodes($page, string $source, $languages = null, $label = "", $addTitle = false) Generates the QR code(s) in each languages
+ * @method string getQRText($page, Field $field, $options = []) Returns the text to generate the QR code. Defaults to `httpUrl`
+ * @method array generateQRCodes(Page $page, Field $field, array $sources = [], $languages = null) Generates the QR code(s)
+ * @method array generateLanguagesQRCodes($page, Field $field, string $source, $languages = null, $fromPage = null) Generates the QR code(s) in each languages
  * 
  */
 class FieldtypeQRCode extends Fieldtype {
@@ -106,6 +106,7 @@ class FieldtypeQRCode extends Fieldtype {
 	 * Returns the text to generate the QR code. Defaults to `httpUrl`
 	 *
 	 * @param Page|Pagefile|Pageimage $page The source Page/Pagefile/Pageimage
+	 * @param Field $field The field generating the QR code
 	 * @param bool|Language|array $options Specify true to output the page's
 	 * `editURL`, a Language object to return URL in that Language or use
 	 * $options array:
@@ -115,7 +116,7 @@ class FieldtypeQRCode extends Fieldtype {
 	 * @return string
 	 *
 	 */
-	public function ___getQRText($page, $options = []) {
+	public function ___getQRText($page, Field $field, $options = []) {
 		$url = $page->httpUrl;
 		if(is_array($options)) {
 			if($page instanceof Page && !empty($options["edit"])) {
@@ -128,17 +129,17 @@ class FieldtypeQRCode extends Fieldtype {
 						"language" => $options["language"]
 					]);
 				}
-			} else if($page instanceof Page && !empty($options["language"])) {
+			} elseif($page instanceof Page && !empty($options["language"])) {
 				if($options["language"] === true) {
 					$url = $page->localHttpUrl();
 				} else {
 					$url = $page->httpUrl($options["language"]);
 				}
 			}
-		} else if($page instanceof Page && $options === true) {
+		} elseif($page instanceof Page && $options === true) {
 			$url = $page->editUrl(true);
 			$url = preg_replace("/&language=\d+/", "", $url);
-		} else if($page instanceof Page && $options instanceof Language) {
+		} elseif($page instanceof Page && $options instanceof Language) {
 			$url = $page->httpUrl($options);
 		}
 		return $url;
@@ -149,14 +150,16 @@ class FieldtypeQRCode extends Fieldtype {
 	 * an array of arrays containing the QR code image, its original text, its
 	 * label and its source (from the configuration)
 	 *
-	 * @param Page $page
-	 * @param array $sources
-	 * @param array|null $languages
+	 * @param Page $page The source Page
+	 * @param Field $field The field generating the QR code
+	 * @param array $sources The different sources to generate the QR codes from
+	 * @param PageArray|null $languages
 	 * @return array
 	 *
 	 */
 	public function ___generateQRCodes(
 		Page $page,
+		Field $field,
 		array $sources = [],
 		$languages = null
 	) {
@@ -168,60 +171,76 @@ class FieldtypeQRCode extends Fieldtype {
 				if(!empty($languages)) {
 					$lqr = $this->generateLanguagesQRCodes(
 						$page,
+						$field,
 						$source,
 						$languages,
-						"URL"
 					);
 					$qrcodes = array_merge($qrcodes, $lqr);
 					continue;
 				}
 				$qrcodes[] = $this->generateQRCodeData(
-					$this->getQRText($page),
+					$this->getQRText($page, $field),
 					"URL",
 					$source
 				);
 			} elseif($source === "editUrl") {
 				$qrcodes[] = $this->generateQRCodeData(
-					$this->getQRText($page, true),
+					$this->getQRText($page, $field, true),
 					"Admin URL",
 					$source
 				);
-			} elseif($f = $page->getUnformatted($source)) {
-				$label = $page->fields->get($source)->label;
-				if(is_string($f)) {
-					$qrcodes[] = $this->generateQRCodeData($f, $label, $source);
-				} else if($f instanceof LanguagesPageFieldValue && !empty($languages)) {
+			} elseif($value = $page->getUnformatted($source)) {
+				$isSubfield = strpos($source, ".") !== false;
+				if($isSubfield) {
+					$split = explode(".", $source);
+					$label = $page->fields->get($split[0])->label;
+					$label .= " ($split[1])";
+ 				} else {
+					$label = $page->fields->get($source)->label;
+				}
+				if(is_string($value)) {
+					$qrcodes[] = $this->generateQRCodeData($value, $label, $source);
+				} elseif($value instanceof LanguagesPageFieldValue && !empty($languages)) {
 					$lqr = $this->generateLanguagesQRCodes(
-						$f,
+						$value,
+						$field,
 						$source,
 						$languages,
-						$label
+						$page
 					);
 					$qrcodes = array_merge($qrcodes, $lqr);
-				} else if($f instanceof Pagearray) {
-					foreach($f as $p) {
+				} elseif($value instanceof Pagearray) {
+					foreach($value as $subpage) {
 						if(!empty($languages)) {
 							$lqr = $this->generateLanguagesQRCodes(
-								$p,
+								$subpage,
+								$field,
 								$source,
 								$languages,
-								$label,
-								true
+								$page
 							);
 							$qrcodes = array_merge($qrcodes, $lqr);
 							continue;
 						}
 						$qrcodes[] = $this->generateQRCodeData(
-							$this->getQRText($p),
-							"{$label}: {$p->title}",
+							$this->getQRText($subpage, $field),
+							"{$label}: {$subpage->title}",
 							$source
 						);
 					}
-				} else if($f instanceof Pagefiles) {
-					foreach($f as $file) {
+				} elseif($value instanceof Pagefiles) {
+					foreach($value as $file) {
 						$qrcodes[] = $this->generateQRCodeData(
-							$this->getQRText($file),
+							$this->getQRText($file, $field),
 							"{$label}: {$file->basename()}",
+							$source
+						);
+					}
+				} elseif(is_array($value)) {
+					foreach($value as $v) {
+						$qrcodes[] = $this->generateQRCodeData(
+							$v,
+							$label,
 							$source
 						);
 					}
@@ -236,20 +255,20 @@ class FieldtypeQRCode extends Fieldtype {
 	 * Generates the QR code(s) for the page (or multi-languages field) in each
 	 * languages
 	 *
-	 * @param Page|LanguagesPageFieldValue $page
-	 * @param string $source
-	 * @param array|null $languages
-	 * @param string $label
-	 * @param bool $addTitle Add the page's title in the label? (default=false)
+	 * @param Page|LanguagesPageFieldValue $page The source Page
+	 * @param Field $field The field generating the QR code
+	 * @param string $source The different sources to generate the QR codes from
+	 * @param PageArray|null $languages
+	 * @param Page|null $fromPage
 	 * @return array
 	 *
 	 */
 	public function ___generateLanguagesQRCodes(
 		$page,
+		Field $field,
 		string $source,
 		$languages = null,
-		$label = "",
-		$addTitle = false
+		$fromPage = null,
 	) {
 		if(empty($languages)) return;
 		if(
@@ -257,16 +276,23 @@ class FieldtypeQRCode extends Fieldtype {
 			&& !($page instanceof LanguagesPageFieldValue)
 		) return;
 
-		$default = $this->wire()->languages->getDefault();
+		if(empty($fromPage) && $page instanceof Page) {
+			$fromPage = $page;
+		}
+
+		$sourceField = $fromPage ? $fromPage->fields->get($source) : false;
+		$isPageField = $sourceField instanceof PageField;
+
+		$defaultLang = $this->wire()->languages->getDefault();
 		$root = $this->wire()->pages->get(1);
-		$rootUrl = $root->url($default);
+		$rootUrl = $root->url($defaultLang);
+		$userLang = $this->wire()->user->language;
 
 		$qrcodes = [];
 
 		foreach($languages as $language) {
-			$isDefault = $language->id === $default->id;
+			$isDefault = $language->id === $defaultLang->id;
 			if($page instanceof LanguagesPageFieldValue) {
-				$addTitle = false;
 				$text = $page->getLanguageValue($language);
 				if(!$text) {
 					continue;
@@ -275,16 +301,25 @@ class FieldtypeQRCode extends Fieldtype {
 				if(!$isDefault && $rootUrl === $root->url($language)) {
 					continue;
 				}
-				$text = $this->getQRText($page, $language);
+				$text = $this->getQRText($page, $field, $language);
 			}
-			$l = $label;
+			if($source === "httpUrl" || $isPageField) {
+				$label = "URL";
+			} else {
+				$label = $sourceField
+					? $sourceField->getLabel($userLang)
+					: $source;
+			}
+			if($isPageField) {
+				$label .= " ({$sourceField->getLabel($userLang)})";
+			}
 			if(!$isDefault) {
-				$l .= $l ? " ({$language->title})" : $language->title;
+				$label .= " ({$language->title})";
 			}
-			if($addTitle) {
-				$l .= $l ? ": $page->title" : $page->title;
+			if($page instanceof Page && $isPageField) {
+				$label .= ": {$page->getLanguageValue($language, "title")}";
 			}
-			$qrcodes[] = $this->generateQRCodeData($text, $l, $source);
+			$qrcodes[] = $this->generateQRCodeData($text, $label, $source);
 		}
 
 		return $qrcodes;
@@ -440,7 +475,7 @@ class FieldtypeQRCode extends Fieldtype {
 
 		if($options["svg"] && !$options["markup"]) {
 			$data = "data:image/svg+xml;base64," . base64_encode($data);
-		} else if(!$options["svg"]) {
+		} elseif(!$options["svg"]) {
 			$data = "data:image/gif;base64," . base64_encode($data);
 		}
 
@@ -463,7 +498,7 @@ class FieldtypeQRCode extends Fieldtype {
 		}
 		$sources = $this->parseSources($page, $field);
 	
-		return $this->generateQRCodes($page, $sources, $languages);
+		return $this->generateQRCodes($page, $field, $sources, $languages);
 	}
 
 	/**
@@ -487,6 +522,7 @@ class FieldtypeQRCode extends Fieldtype {
 	}
 
 	public function ___formatValue(Page $page, Field $field, $value) {
+		/** @var array $value */
 		return array_reduce($value, array($this, "reduceQRCodes"));
 	}
 
@@ -739,6 +775,21 @@ class FieldtypeQRCode extends Fieldtype {
 		});
 
 		return $inputfield;
+	}
+
+	public function upgrade($fromVersion, $toVersion) {
+		if(
+			version_compare($fromVersion, "2.0.0", "<")
+			&& version_compare($toVersion, "2.0.0", ">=")
+		) {
+			$this->warning(
+				sprintf(
+					$this->_("This version introduces a breaking change related to the module’s hookable methods, please have a look at the [support forum](%s) to learn more"),
+					"https://processwire.com/talk/topic/25676-fieldtypeqrcode"
+				),
+				Notice::allowMarkup
+			);
+		}
 	}
 
 	/* Keep FieldtypeQRCode out of the database */

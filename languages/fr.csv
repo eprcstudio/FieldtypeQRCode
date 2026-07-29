@@ -21,4 +21,5 @@ Appearance,Apparence,,site/modules/FieldtypeQRCode/FieldtypeQRCode.module.php,a1
 "Background color","Couleur de fond",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module.php,368d9ac76af05f714092bc808a426bfc
 "This option overrides the background color","Cette option remplace la couleur de fond",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module.php,1d6e54d469babf8e961faf6a71095e17
 "Use a transparent background?","Utiliser un fond transparent ?",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module.php,ed1f4f638da6c7faa1d19cfd208b595d
+"This version introduces a breaking change related to the module’s hookable methods, please have a look at the [support forum](%s) to learn more","Cette version introduit un changement important concernant les fonctions avec hook, vous pouvez en savoir plus via le [forum](%s)",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module.php,83b2b7fd77e2fe967a439cc33f7f7af1
 "Field ""%s"" is runtime only and not queryable","Le champ ""%s"" est uniquement dynamique et non recherchable",,site/modules/FieldtypeQRCode/FieldtypeQRCode.module.php,737650f6c9cf4e52fef009fc61e316d4

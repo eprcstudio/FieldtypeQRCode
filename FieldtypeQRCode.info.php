@@ -2,7 +2,7 @@
 
 $info = [
 	"title" => "QR Code",
-	"version" => "1.2.0",
+	"version" => "2.0.0",
 	"summary" => "Generates a QR code from the public URL of the page (and more)",
 	"author" => "EPRC",
 	"href" => "https://github.com/eprcstudio/FieldtypeQRCode",

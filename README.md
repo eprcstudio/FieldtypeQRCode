@@ -112,6 +112,38 @@ $wire->addHookAfter("FieldtypeQRCode::generateQRCodes", function($event) {
 })
 ```
 
+Generating multiple QR code during a page render can be expensive. Since v2.0.0, you can use the following hooks to cache the output and speed things up on subsequent requests:
+
+```php
+$wire->addHookBefore("FieldtypeQRCode::generateQRCodes", function(HookEvent $event) {
+	/** @var Field $field */
+	$field = $event->arguments("field");
+	/** @var Page $page */
+	$page = $event->arguments("page");
+	$qrcodes = $page->meta()->get("qrcodes-{$field->name}");
+	if(!empty($qrcodes)) {
+		$event->return = json_decode($qrcodes, true);
+		$event->replace = true;
+	}
+});
+
+$wire->addHookAfter("FieldtypeQRCode::generateQRCodes", function(HookEvent $event) {
+	/** @var Field $field */
+	$field = $event->arguments("field");
+	/** @var Page $page */
+	$page = $event->arguments("page");
+	$page->meta()->set("qrcodes-{$field->name}", json_encode($event->return));
+});
+
+$wire->addHookAfter("Page::saved", function(HookEvent $event) {
+	/** @var Page $page */
+	$page = $event->object;
+	foreach($page->fields->find("type=FieldtypeQRCode") as $field) {
+		$page->meta()->remove("qrcodes-{$field->name}");
+	}
+});
+```
+
 ## Note
 
 Depending on the level of correction set and the type of characters encoded in the QR code, [the maximum size allowed for a QR code can vary](https://en.wikipedia.org/wiki/QR_code#Information_capacity). It is adviced to set a maximum character count on textareas or any relevant Inputfields
